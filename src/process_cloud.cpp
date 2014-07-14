@@ -48,13 +48,17 @@ cloud_cb (const sensor_msgs::PointCloud2& input)
   pass.filter (*pc);
 
 
+
+
+
+
   // plane-segmentation
   pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
   pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
   pcl::SACSegmentation<pcl::PointXYZRGB> seg;
   // configure segmentation object
   seg.setOptimizeCoefficients (true);
-  seg.setModelType (pcl::SACMODEL_CYLINDER);
+  seg.setModelType (pcl::SACMODEL_PLANE);
   seg.setMethodType (pcl::SAC_RANSAC);
   seg.setDistanceThreshold (0.01);
   // segment
