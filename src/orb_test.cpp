@@ -47,21 +47,20 @@ class ImageConverter
     }
 
 
+    // Detect Keypoints
     int numKeyPoints = 10;
-
     cv::OrbFeatureDetector detector(numKeyPoints);
     std::vector<cv::KeyPoint> keyPoints;
     detector.detect(cv_ptr->image, keyPoints);
-
+    // Print keypoints on image
     cv::drawKeypoints(cv_ptr->image, keyPoints, cv_ptr->image);
-    
-
-    // Update GUI Window
     cv::imshow(OPENCV_WINDOW, cv_ptr->image);
     cv::waitKey(3);
-
     // Output modified video stream
     image_pub_.publish(cv_ptr->toImageMsg());
+
+
+
   }
 };
 
