@@ -26,6 +26,8 @@ class ImageConverter
     image_pub_ = it_.advertise("/image_converter/output_video", 1);
 
     cv::namedWindow(OPENCV_WINDOW);
+
+    std::cout << "converter initialized" << std::endl;
   }
 
   ~ImageConverter()
@@ -35,10 +37,14 @@ class ImageConverter
 
   void imageCb(const sensor_msgs::ImageConstPtr& msg)
   {
+    std::cout << "callback called" << std::endl;
+
     cv_bridge::CvImagePtr cv_ptr;
+    cv_bridge::CvImagePtr cv_ptr2;
     try
     {
       cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+      cv_ptr2 = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
     }
     catch (cv_bridge::Exception& e)
     {
@@ -46,16 +52,38 @@ class ImageConverter
       return;
     }
 
+    // Rotate second image
+    cv::Mat rot_mat(2, 3, CV_32FC1);
+    cv::Point center(cv_ptr2->image.cols/2, cv_ptr2->image.rows/2);
+    rot_mat = getRotationMatrix2D(center, 90.0, 1.0);
+    cv::warpAffine(cv_ptr2->image, cv_ptr2->image, rot_mat, cv_ptr2->image.size());
 
-    // Detect Keypoints
-    int numKeyPoints = 10;
-    cv::OrbFeatureDetector detector(numKeyPoints);
-    std::vector<cv::KeyPoint> keyPoints;
-    detector.detect(cv_ptr->image, keyPoints);
-    // Print keypoints on image
-    cv::drawKeypoints(cv_ptr->image, keyPoints, cv_ptr->image);
-    cv::imshow(OPENCV_WINDOW, cv_ptr->image);
+    // Detect keypoints and get descriptor
+    int numKeyPoints = 100;
+    cv::ORB orb(numKeyPoints);
+    std::vector<cv::KeyPoint> keypoints1;
+    std::vector<cv::KeyPoint> keypoints2;
+    cv::Mat descriptor1;
+    cv::Mat descriptor2;
+    orb(cv_ptr->image, cv::Mat(), keypoints1, descriptor1);
+    orb(cv_ptr2->image, cv::Mat(), keypoints2, descriptor2);
+
+    std::cout << "callback start matching" << std::endl;
+
+    // Match descriptors
+    cv::BFMatcher matcher(cv::NORM_L2);
+    std::vector<cv::DMatch> matches;
+    matcher.match(descriptor1, descriptor2, matches);
+
+    std::cout << "callback end matching" << std::endl;
+
+    // Draw matches
+    cv::Mat img_matches;
+    cv::drawMatches(cv_ptr->image, keypoints1, cv_ptr2->image, keypoints2, matches, img_matches);
+    cv::imshow(OPENCV_WINDOW, img_matches);
     cv::waitKey(3);
+
+
     // Output modified video stream
     image_pub_.publish(cv_ptr->toImageMsg());
 
