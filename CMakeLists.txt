@@ -197,3 +197,6 @@ target_link_libraries(orb_test2 ${catkin_LIBRARIES})
   find_package(OpenCV REQUIRED)
   include_directories(${OpenCV_INCLUDE_CIRS})
   target_link_libraries(orb_test2 ${OpenCV_LIBRARIES})
+
+  add_executable(chessboard_test src/chessboard_test.cpp)
+target_link_libraries(chessboard_test ${catkin_LIBRARIES})
