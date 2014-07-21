@@ -50,7 +50,7 @@ class ImageConverter
       return;
     }
 
-    cv::Mat img = cv::imread("/home/pfaion/catkin_ws/src/ggp_robot/frame0001.jpg", CV_LOAD_IMAGE_COLOR);
+    cv::Mat img = cv::imread("/home/pfaion/catkin_ws/src/ggp_robot/src/board_low.jpg", CV_LOAD_IMAGE_COLOR);
 
     // Detect keypoints and get descriptor
     int numKeyPoints = 100;

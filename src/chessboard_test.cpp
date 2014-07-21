@@ -20,6 +20,7 @@ static const std::string OPENCV_WINDOW = "Image window";
 
 class ImageConverter
 {
+  // initialize stuff
   ros::NodeHandle nh_;
   image_transport::ImageTransport it_;
   image_transport::Subscriber image_sub_;
@@ -31,10 +32,9 @@ class ImageConverter
     : it_(nh_)
   {
     // Subscrive to input video feed and publish output video feed
-    image_sub_ = it_.subscribe("/camera/rgb/image_raw", 1, 
-        &ImageConverter::imageCb, this);
+    image_sub_ = it_.subscribe("/camera/rgb/image_raw", 1, &ImageConverter::imageCb, this);
     image_pub_ = it_.advertise("/image_converter/output_video", 1);
-     marker_pub_ = nh_.advertise<visualization_msgs::Marker> ("ggp/marker/test", 1);
+    marker_pub_ = nh_.advertise<visualization_msgs::Marker> ("ggp/marker/test", 1);
 
     cv::namedWindow(OPENCV_WINDOW);
   }
@@ -44,9 +44,12 @@ class ImageConverter
     cv::destroyWindow(OPENCV_WINDOW);
   }
 
+  // Callback function for image-data
+  // Here the magic happens
   void imageCb(const sensor_msgs::ImageConstPtr& msg)
   {
 
+    // convert sensor_msgs to opencv-Mat-like object
     cv_bridge::CvImagePtr cv_ptr;
     try
     {
@@ -73,7 +76,7 @@ class ImageConverter
       return;
     }
 
-
+    // Corresponding points of the chessboard corners in their own coordinate space
     std::vector<cv::Point3f> objectPoints;
     objectPoints.push_back(cv::Point3f(283.5, 94.5, 0));
     objectPoints.push_back(cv::Point3f(189, 94.5, 0));
@@ -85,6 +88,7 @@ class ImageConverter
     objectPoints.push_back(cv::Point3f(189, 283.5, 0));
     objectPoints.push_back(cv::Point3f(94.5, 283.5, 0));
 
+    // camera intrinsics
     cv::Matx33d cameraMatrix = cv::Matx33d::zeros();
     cameraMatrix(0,0) = 570.3422241210938;
     cameraMatrix(0,2) = 319.5;
@@ -92,12 +96,12 @@ class ImageConverter
     cameraMatrix(1,2) = 239.5;
     cameraMatrix(2,2) = 1.0;
 
+    // camera distortion coefficients
     std::vector<float> distCoeffs(5,0.0);
 
-
+    // solve PnP problem -> get rotation- and translation-vector
     cv::Mat rvec;
     cv::Mat tvec;
-
     bool solveSuccess;
     solveSuccess = solvePnP(objectPoints, corners, cameraMatrix, distCoeffs, rvec, tvec);
     if(!solveSuccess) {
@@ -105,46 +109,54 @@ class ImageConverter
       return;
     }
 
+
+
+    // --------------------------------------
+    // Test 1: form a cube out of the corners
+    //  -> project 3D data in board-space onto image-plane
+    // --------------------------------------
     std::vector<cv::Point3f> points;
     points.push_back(cv::Point3f(94.5, 94.5, 189));
     points.push_back(cv::Point3f(94.5, 283.5, 189));
     points.push_back(cv::Point3f(283.5, 94.5, 189));
     points.push_back(cv::Point3f(283.5, 283.5, 189));
-
+    // project cube-points onto image-plane
     std::vector<cv::Point2f> projectedPoints;
     cv::projectPoints(points, rvec, tvec, cameraMatrix, distCoeffs, projectedPoints);
-
-
+    // draw circles for the new points
     for(std::vector<cv::Point2f>::iterator it = projectedPoints.begin(); it != projectedPoints.end(); ++it) {
       cv::circle(img_corners, *it, 3.0, cv::Scalar(0, 255, 0), 1, 8);
     }
+    // print the image for visualisation
 
 
+
+    // ----------------------------------------------
+    // Test 2: construct affine transform and inverse
+    //  -> project 3D data from board-space into camera-space and back
+    // ----------------------------------------------
+    //
+    // create rotation-matrix from rotation-vector
     cv::Mat cvRot;
     cv::Rodrigues(rvec, cvRot);
-
+    // convert rotation-matrix to Eigen
     Eigen::Matrix<double,3,3> rotMat;
     cv2eigen(cvRot, rotMat);
-
-
+    // convert translation-vector to Eigen
     Eigen::Matrix<double,3,1> transMat;
     cv2eigen(tvec, transMat);
-
-
+    // create Transform objects
     Eigen::Translation<double,3> translation(transMat);
     Eigen::AngleAxis<double> rotation(rotMat);
-
+    // combine to affine transform objects
     Eigen::Transform<double,3,Eigen::Affine> transform = translation * rotation;
     Eigen::Transform<double,3,Eigen::Affine> invTransform = transform.inverse();
 
-
-
+    // Test it by transforming a point and showing a Marker in rviz
     Eigen::Vector3d boardCorner(0,0,0);
     Eigen::Vector3d p;
     p = transform * boardCorner;
-
-
-
+    // marker-stuff... should be packed in a function
     visualization_msgs::Marker mark;
     mark.header.frame_id = "/camera_rgb_optical_frame";
     mark.header.stamp = ros::Time::now();
@@ -166,16 +178,12 @@ class ImageConverter
     mark.color.b = 0.0f;
     mark.color.a = 0.5f;
     mark.lifetime = ros::Duration();
-
-   
-
+    // publish marker
     marker_pub_.publish(mark);
 
-
+    // show image
     cv::imshow(OPENCV_WINDOW, img_corners);
     cv::waitKey(3);
-
-
 
     // Output modified video stream
     image_pub_.publish(cv_ptr->toImageMsg());
