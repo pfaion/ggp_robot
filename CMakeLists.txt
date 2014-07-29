@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(ggp_robot)
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules)
+
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -8,6 +10,7 @@ project(ggp_robot)
       pcl_conversions
       pcl_ros
       roscpp
+      rospy
       sensor_msgs
       image_transport
       std_msgs
@@ -17,6 +20,7 @@ project(ggp_robot)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
+find_package(OpenCV2 REQUIRED)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -93,6 +97,7 @@ project(ggp_robot)
         sensor_msgs
         cv_bridge
         roscpp
+        rospy
         std_msgs
         image_transport
         visualization_msgs
@@ -105,6 +110,7 @@ project(ggp_robot)
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(${catkin_INCLUDE_DIRS})
+include_directories(${OpenCV_INCLUDE_DIRS})
 
 ## Declare a cpp library
 # add_library(ggp_robot
@@ -197,6 +203,9 @@ target_link_libraries(orb_test2 ${catkin_LIBRARIES})
   find_package(OpenCV REQUIRED)
   include_directories(${OpenCV_INCLUDE_CIRS})
   target_link_libraries(orb_test2 ${OpenCV_LIBRARIES})
+
+  add_executable(feature_test src/feature_test.cpp)
+target_link_libraries(feature_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
   add_executable(chessboard_test src/chessboard_test.cpp)
 target_link_libraries(chessboard_test ${catkin_LIBRARIES})
