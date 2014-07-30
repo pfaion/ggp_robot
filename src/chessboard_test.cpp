@@ -20,6 +20,12 @@
 
 static const std::string OPENCV_WINDOW = "Image window";
 
+bool reddish(int i, int j) { 
+  int idistance = std::min(i, 180-i);
+  int jdistance = std::min(j, 180-j);
+  return idistance > jdistance;
+}
+
 class ImageConverter
 {
   // initialize stuff
@@ -214,7 +220,8 @@ class ImageConverter
     }
 
    
-
+    std::cout << " ---------------------------- " << std::endl;
+    std::vector<int> avgHues;
     for(int i=0; i<4; i++){
       std::vector<cv::Point> roi = possibleMarkers[i];
 
@@ -248,7 +255,8 @@ class ImageConverter
       cv::cvtColor(avgBGR, avgHSV, CV_BGR2HSV);
 
       cv::Scalar avH = cv::mean(avgHSV);
-      std::cout << "mask" << i << ": " << avH[0] << "|" << avH[1] << "|" << avH[2] << std::endl;
+      std::cout << "avg HSV" << i << ": " << avH[0] << "|" << avH[1] << "|" << avH[2] << std::endl;
+      avgHues.push_back(avH[0]);
 
       cv::Mat avgBGRBack;
       avgHSV.copyTo(avgBGRBack);
@@ -259,10 +267,10 @@ class ImageConverter
       avgImg = cv::mean(avgBGRBack);
       cv::imshow(wdnames[i], avgImg);
     }
-
-    std::cout << " ---------------------------- " << std::endl;
     
-
+    //  TODO: build better regocnition functio (max "H",S,V all or display error, if only two met)
+    int maxId = std::max_element(avgHues.begin(), avgHues.end(), reddish) - avgHues.begin();
+    std::cout << maxId << std::endl;
 
     drawBoardMarker();    
 
@@ -278,6 +286,7 @@ class ImageConverter
 
   }
 
+
   void debug(const std::string &str){
     std::cout << str << std::endl;
   }
@@ -288,7 +297,7 @@ class ImageConverter
     double s = 0.0945;
 
     for(int i=0; i<=0; i++){
-      for(int j=0; j<=0; j++){
+      for(int j=0; j<=2; j++){
         pubBoardMarker(m+i*s, m+j*s, (i%2==0) != (j%2==0), i+4*j);
       }
     }
