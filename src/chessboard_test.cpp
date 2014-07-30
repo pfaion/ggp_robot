@@ -35,6 +35,21 @@ class BoardPoint: public cv::Point3f{
 };
 double BoardPoint::FIELD_SIZE = 0.0945;
 
+class BoardVector: public Eigen::Vector3d{
+  public:
+    static double FIELD_SIZE;
+    BoardVector(double x, double y): Eigen::Vector3d(x*FIELD_SIZE, y*FIELD_SIZE, 0.0) {};
+    BoardVector(double x, double y, double z): Eigen::Vector3d(x*FIELD_SIZE, y*FIELD_SIZE, z*FIELD_SIZE) {};
+    BoardVector(Eigen::Vector3d vec): Eigen::Vector3d(vec) {};
+    Eigen::Vector3d transform(Eigen::Transform<double,3,Eigen::Affine> t) {
+      Eigen::Vector3d myclone((*this)[0], (*this)[1], (*this)[2]);
+      Eigen::Vector3d transformed(t * myclone);
+      return transformed;
+    };
+};
+double BoardVector::FIELD_SIZE = 0.0945;
+
+
 class ImageConverter
 {
   // initialize stuff
@@ -184,7 +199,7 @@ class ImageConverter
     //Eigen::Transform<double,3,Eigen::Affine> transform = scaling;
     Eigen::Transform<double,3,Eigen::Affine> invTransform = transform.inverse();
     //std::cout << "transform:" << std::endl << transform.matrix() << std::endl;
-    
+
     std::cout << transform.matrix() << std::endl;
 
     // broadcast transform
@@ -193,7 +208,7 @@ class ImageConverter
     tf_transform.setOrigin(tf::Vector3(transform.matrix()(0,3), transform.matrix()(1,3), transform.matrix()(2,3)));
     tf_transform.setBasis(tf::Matrix3x3(transform.matrix()(0,0), transform.matrix()(0,1), transform.matrix()(0,2), transform.matrix()(1,0), transform.matrix()(1,1), transform.matrix()(1,2), transform.matrix()(2,0), transform.matrix()(2,1), transform.matrix()(2,2)));
     br.sendTransform(tf::StampedTransform(tf_transform, ros::Time::now(), "/camera_rgb_optical_frame", "/board_frame"));
-    
+
     // Test it by transforming a point and showing a Marker in rviz
     Eigen::Vector3d boardCorner(0,0,0);
     Eigen::Vector3d p;
@@ -204,17 +219,13 @@ class ImageConverter
     std::string test_ns = "testmarker";
     //pubMarker(test_ns, p, opticalFrame, false,  1.0f, 0.0f, 0.0f);
     //pubMarker(test_ns, boardCorner, opticalFrame, false, 0.0f, 1.0f, 0.0f);
-    
-    
-    // ???????????????????????????????????????????????? 
-    // ???????????????????????????????????????????????? 
-    // ???????????????????????????????????????????????? 
-    // ???????????????????????????????????????????????? 
-    // ???????????????????????????????????????????????? 
+
+
     double n = 0.0;
     //double s = 0.0945;
     double s = 1;
     std::vector<std::vector<cv::Point> > possibleMarkers;
+    std::vector<std::vector<cv::Point3f> > tmpMarkerBoardPoints;
     double xoffset[] = {0.0, 4*s, 3*s, -s};
     double yoffset[] = {-s, 0.0, 4*s, 3*s};
     for(int i=0; i<4; i++){
@@ -225,6 +236,7 @@ class ImageConverter
       field.push_back(BoardPoint(x+n, y+s, n));
       field.push_back(BoardPoint(x+s, y+s, n));
       field.push_back(BoardPoint(x+s, y+n, n));
+      tmpMarkerBoardPoints.push_back(field);
       std::vector<cv::Point2f> field_proj;
       cv::projectPoints(field, rvec, tvec, cameraMatrix, distCoeffs, field_proj);
       std::vector<cv::Point> roi;
@@ -233,95 +245,42 @@ class ImageConverter
       }
       possibleMarkers.push_back(roi);
     }
-    
-    for(std::vector<std::vector<cv::Point> >::iterator fieldit = possibleMarkers.begin();
-        fieldit != possibleMarkers.end();
-        ++fieldit) {
-        std::vector<cv::Point> field = *fieldit;
-      for(std::vector<cv::Point>::iterator it = field.begin();
-          it != field.end();
-          ++it) {
-        std::cout << *it << std::endl;
-        cv::circle(img_corners, *it, 3.0, cv::Scalar(0, 255, 0), 1, 8);
-      }
-    }
 
-      std::vector<cv::Point> roi = possibleMarkers[0];
+//    for(std::vector<std::vector<cv::Point> >::iterator fieldit = possibleMarkers.begin();
+//        fieldit != possibleMarkers.end();
+//        ++fieldit) {
+//      std::vector<cv::Point> field = *fieldit;
+//      for(std::vector<cv::Point>::iterator it = field.begin();
+//          it != field.end();
+//          ++it) {
+//        std::cout << *it << std::endl;
+//        cv::circle(img_corners, *it, 3.0, cv::Scalar(0, 255, 0), 1, 8);
+//      }
+//    }
 
-      std::vector<cv::Point> ROI_Poly;
-      cv::approxPolyDP(roi, ROI_Poly, 1.0, true);
 
-      cv::Mat mask = cvCreateMat(cv_ptr->image.size().height, cv_ptr->image.size().width, CV_8UC1);
-      for(int x=0; x<mask.cols; x++)
-        for(int y=0; y<mask.rows; y++)
-          mask.at<uchar>(cv::Point(x,y)) = 0;
+    std::vector<cv::Point> roi = possibleMarkers[0];
 
-      // Fill polygon white
-      cv::fillConvexPoly(mask, &ROI_Poly[0], ROI_Poly.size(), 255, 8, 0);     
+    std::vector<cv::Point> ROI_Poly;
+    cv::approxPolyDP(roi, ROI_Poly, 1.0, true);
 
-      cv::Mat masked;
-      cv_ptr->image.copyTo(masked, mask);
-      cv::imshow("masked1", masked);
+    cv::Mat mask = cvCreateMat(cv_ptr->image.size().height, cv_ptr->image.size().width, CV_8UC1);
+    for(int x=0; x<mask.cols; x++)
+      for(int y=0; y<mask.rows; y++)
+        mask.at<uchar>(cv::Point(x,y)) = 0;
 
-    // ???????????????????????????????????????????????? 
-    // ???????????????????????????????????????????????? 
-    // ???????????????????????????????????????????????? 
-    // ???????????????????????????????????????????????? 
-    // ???????????????????????????????????????????????? 
-    // ???????????????????????????????????????????????? 
-    // ???????????????????????????????????????????????? 
+    // Fill polygon white
+    cv::fillConvexPoly(mask, &ROI_Poly[0], ROI_Poly.size(), 255, 8, 0);     
 
-    std::cout << " -----mask2 start----- " << std::endl;
-    std::vector<std::vector<cv::Point> > tmp_markers;
-    for(int i=0; i<4; i++){
-      std::vector<cv::Point3f> field;
-      double x = xoffset[i];
-      double y = yoffset[i];
-      field.push_back(BoardPoint(x+n, y+n, n));
-      field.push_back(BoardPoint(x+n, y+s, n));
-      field.push_back(BoardPoint(x+s, y+s, n));
-      field.push_back(BoardPoint(x+s, y+n, n));
-      std::vector<cv::Point2f> field_proj;
-      cv::projectPoints(field, rvec, tvec, cameraMatrix, distCoeffs, field_proj);
-      std::vector<cv::Point> roi;
-      for(int j=0; j<4; j++){
-        roi.push_back(cvPointFrom32f(field_proj[j]));
-      }
-      tmp_markers.push_back(roi);
-    }
-    
-    
-
-      std::vector<cv::Point> tmp_roi = tmp_markers[0];
-
-      std::vector<cv::Point> tmp_ROI_Poly;
-      cv::approxPolyDP(tmp_roi, tmp_ROI_Poly, 1.0, true);
-
-      cv::Mat tmp_mask = cvCreateMat(cv_ptr->image.size().height, cv_ptr->image.size().width, CV_8UC1);
-      for(int x=0; x<tmp_mask.cols; x++)
-        for(int y=0; y<tmp_mask.rows; y++)
-          tmp_mask.at<uchar>(cv::Point(x,y)) = 0;
-
-      // Fill polygon white
-      cv::fillConvexPoly(tmp_mask, &tmp_ROI_Poly[0], tmp_ROI_Poly.size(), 255, 8, 0);     
-
-      cv::Mat tmp_masked;
-      cv_ptr->image.copyTo(tmp_masked, tmp_mask);
-      cv::imshow("masked2", tmp_masked);
-
-    std::cout << " -----mask2 end----- " << std::endl;
-    // ???????????????????????????????????????????????? 
-    // ???????????????????????????????????????????????? 
-    // ???????????????????????????????????????????????? 
-    // ???????????????????????????????????????????????? 
-    // ???????????????????????????????????????????????? 
-    // ???????????????????????????????????????????????? 
-    // ???????????????????????????????????????????????? 
+    cv::Mat masked;
+    cv_ptr->image.copyTo(masked, mask);
+    cv::imshow("masked1", masked);
 
 
 
 
-   
+
+
     std::cout << " ---------------------------- " << std::endl;
     std::vector<int> avgHues;
     for(int i=0; i<4; i++){
@@ -367,29 +326,48 @@ class ImageConverter
       cv::Mat avgImg;
       cv_ptr->image.copyTo(avgImg);
       avgImg = cv::mean(avgBGRBack);
-      //cv::imshow(wdnames[i], avgImg);
+      cv::imshow(wdnames[i], avgImg);
     }
-    
+
     //  TODO: build better regocnition functio (max "H",S,V all or display error, if only two met)
     int maxId = std::max_element(avgHues.begin(), avgHues.end(), reddish) - avgHues.begin();
     std::cout << maxId << std::endl;
 
     //drawBoardMarker();    
 
-    
-    
-    int xpos[] = {0, 3, 3, 0}; 
-    int ypos[] = {0, 0, 3, 3};
-    int x = xpos[maxId];
-    int y = ypos[maxId];
+    //for(int i=0; i<4; i++) {
+      for(int j=0; j<4; j++) {
+        cv::circle(img_corners, possibleMarkers[maxId][j], 3.0, cv::Scalar(0, 255, 0), 1, 8);
+        pubBoardMarker(tmpMarkerBoardPoints[maxId][j], true, 10*j);
+      }
+    //}
+
+    int xb = 0;
+    int yb = 0;
+    int x;
+    int y;
+    if(maxId == 0) {
+      x = yb;
+      y = 3 - xb;
+    } else if(maxId == 1) {
+      x = xb;
+      y = yb;
+    } else if(maxId == 2) {
+      x = 3 - yb;
+      y = xb;
+    } else if(maxId == 3) {
+      x = 3 - xb;
+      y = 3 - yb;
+    }
     double mid = 0.5;
     //for(int x=0; x<=2; x++){
-      //for(int y=0; y<=0; y++){
-        BoardPoint pnt(x + mid, y + mid);
-        bool white((x%2==0) != (y%2==0));
-        int fieldId = x + 4*y;
-        pubBoardMarker(pnt, white, fieldId);
-      //}
+    //for(int y=0; y<=0; y++){
+    BoardVector pnt(x + mid, y + mid);
+    BoardVector pnt_trans = pnt.transform(transform);
+    bool white((x%2==0) != (y%2==0));
+    int fieldId = 1; 
+    pubBoardMarker(pnt_trans, white, fieldId);
+    //}
     //}
 
 
@@ -411,7 +389,7 @@ class ImageConverter
   }
 
   void drawBoardMarker(){
-    
+
     double offset = 0.5;
     for(int i=0; i<=2; i++){
       for(int j=0; j<=0; j++){
@@ -458,7 +436,81 @@ class ImageConverter
     // publish marker
     marker_pub_.publish(mark);   
   }
+void pubBoardMarker(cv::Point3f p, bool white, int id) {
+    visualization_msgs::Marker mark;
+    mark.header.frame_id = "/board_frame";
+    mark.header.stamp = ros::Time::now();
+    mark.ns = "board_fields";
+    mark.id = id;
+    mark.type = visualization_msgs::Marker::CUBE;
 
+    mark.pose.position.x = p.x;
+    mark.pose.position.y = p.y;
+    mark.pose.position.z = p.z;
+
+    mark.pose.orientation.x = 0.0;
+    mark.pose.orientation.y = 0.0;
+    mark.pose.orientation.z = 0.0;
+    mark.pose.orientation.w = 1.0;
+
+    double s = BoardPoint::FIELD_SIZE;
+    mark.scale.x = s/10;
+    mark.scale.y = s/10;
+    mark.scale.z = s/10;
+
+    if(white) {
+      mark.color.r = 0.5f;
+      mark.color.g = 0.5f;
+      mark.color.b = 1.0f;
+    } else {
+      mark.color.r = 0.5f;
+      mark.color.g = 0.0f;
+      mark.color.b = 0.0f;
+    }
+
+    mark.color.a = 1.0f;
+    mark.lifetime = ros::Duration();
+    // publish marker
+    marker_pub_.publish(mark);   
+  }
+
+  void pubBoardMarker(BoardVector p, bool white, int id) {
+    visualization_msgs::Marker mark;
+    mark.header.frame_id = "/camera_rgb_optical_frame";
+    mark.header.stamp = ros::Time::now();
+    mark.ns = "board_fields";
+    mark.id = id;
+    mark.type = visualization_msgs::Marker::CUBE;
+
+    mark.pose.position.x = p[0];
+    mark.pose.position.y = p[1];
+    mark.pose.position.z = p[2];
+
+    mark.pose.orientation.x = 0.0;
+    mark.pose.orientation.y = 0.0;
+    mark.pose.orientation.z = 0.0;
+    mark.pose.orientation.w = 1.0;
+
+    double s = BoardPoint::FIELD_SIZE;
+    mark.scale.x = s;
+    mark.scale.y = s;
+    mark.scale.z = 0.001;
+
+    if(white) {
+      mark.color.r = 0.5f;
+      mark.color.g = 1.0f;
+      mark.color.b = 0.5f;
+    } else {
+      mark.color.r = 0.5f;
+      mark.color.g = 0.0f;
+      mark.color.b = 0.0f;
+    }
+
+    mark.color.a = 0.5f;
+    mark.lifetime = ros::Duration();
+    // publish marker
+    marker_pub_.publish(mark);   
+  }
 
   void pubMarker(const std::string& namesp, Eigen::Vector3d& p, const std::string& frameId, bool big, float r, float g, float b) {
     visualization_msgs::Marker mark;
