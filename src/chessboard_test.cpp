@@ -246,17 +246,17 @@ class ImageConverter
       possibleMarkers.push_back(roi);
     }
 
-//    for(std::vector<std::vector<cv::Point> >::iterator fieldit = possibleMarkers.begin();
-//        fieldit != possibleMarkers.end();
-//        ++fieldit) {
-//      std::vector<cv::Point> field = *fieldit;
-//      for(std::vector<cv::Point>::iterator it = field.begin();
-//          it != field.end();
-//          ++it) {
-//        std::cout << *it << std::endl;
-//        cv::circle(img_corners, *it, 3.0, cv::Scalar(0, 255, 0), 1, 8);
-//      }
-//    }
+    //    for(std::vector<std::vector<cv::Point> >::iterator fieldit = possibleMarkers.begin();
+    //        fieldit != possibleMarkers.end();
+    //        ++fieldit) {
+    //      std::vector<cv::Point> field = *fieldit;
+    //      for(std::vector<cv::Point>::iterator it = field.begin();
+    //          it != field.end();
+    //          ++it) {
+    //        std::cout << *it << std::endl;
+    //        cv::circle(img_corners, *it, 3.0, cv::Scalar(0, 255, 0), 1, 8);
+    //      }
+    //    }
 
 
     std::vector<cv::Point> roi = possibleMarkers[0];
@@ -336,10 +336,10 @@ class ImageConverter
     //drawBoardMarker();    
 
     //for(int i=0; i<4; i++) {
-      for(int j=0; j<4; j++) {
-        cv::circle(img_corners, possibleMarkers[maxId][j], 3.0, cv::Scalar(0, 255, 0), 1, 8);
-        pubBoardMarker(tmpMarkerBoardPoints[maxId][j], true, 10*j);
-      }
+    for(int j=0; j<4; j++) {
+      cv::circle(img_corners, possibleMarkers[maxId][j], 3.0, cv::Scalar(0, 255, 0), 1, 8);
+      pubBoardMarker(tmpMarkerBoardPoints[maxId][j], true, 10*j);
+    }
     //}
 
     int xb = 0;
@@ -364,9 +364,9 @@ class ImageConverter
     //for(int y=0; y<=0; y++){
     BoardVector pnt(x + mid, y + mid);
     BoardVector pnt_trans = pnt.transform(transform);
-    bool white((x%2==0) != (y%2==0));
+    bool white((xb%2==0) != (yb%2==0));
     int fieldId = 1; 
-    pubBoardMarker(pnt_trans, white, fieldId);
+    pubBoardMarker(pnt, white, fieldId);
     //}
     //}
 
@@ -436,7 +436,7 @@ class ImageConverter
     // publish marker
     marker_pub_.publish(mark);   
   }
-void pubBoardMarker(cv::Point3f p, bool white, int id) {
+  void pubBoardMarker(cv::Point3f p, bool white, int id) {
     visualization_msgs::Marker mark;
     mark.header.frame_id = "/board_frame";
     mark.header.stamp = ros::Time::now();
@@ -476,7 +476,7 @@ void pubBoardMarker(cv::Point3f p, bool white, int id) {
 
   void pubBoardMarker(BoardVector p, bool white, int id) {
     visualization_msgs::Marker mark;
-    mark.header.frame_id = "/camera_rgb_optical_frame";
+    mark.header.frame_id = "/board_frame";
     mark.header.stamp = ros::Time::now();
     mark.ns = "board_fields";
     mark.id = id;
