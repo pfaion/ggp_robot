@@ -1,7 +1,6 @@
+// chessboard.cpp //
 #include <ggp_robot/libs/chessboard.h>
-#include <ggp_robot/libs/factories.h>
 
-namespace GgpRobot {
 
   ChessBoard::ChessBoard()
     : FIELD_SIZE(0.0945)
@@ -50,5 +49,3 @@ namespace GgpRobot {
   }
 
   
-}
-REGISTER_TYPE(GgpRobot::ChessBoard, "chessboard");

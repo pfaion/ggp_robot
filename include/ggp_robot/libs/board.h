@@ -6,7 +6,6 @@
 #include <Eigen/Dense>
 #include <cv_bridge/cv_bridge.h>
 
-namespace GgpRobot {
 
   struct BoardPoint{
     public:
@@ -52,7 +51,6 @@ namespace GgpRobot {
 
 
 
-}
 
 
 #endif

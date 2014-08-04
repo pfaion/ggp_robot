@@ -5,7 +5,6 @@
 #include <boost/assign/std/vector.hpp>
 #include <ggp_robot/libs/board.h>
 
-namespace GgpRobot {
 
   class CbBRec1 : public BoardRecognition {
 
@@ -30,8 +29,5 @@ namespace GgpRobot {
 
   };
 
-
-
-}
 
 #endif
