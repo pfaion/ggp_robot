@@ -40,6 +40,7 @@
       RegionLayout regions;
 
       PlanarBoard() : regions(){}
+      virtual ~PlanarBoard(){}
       
       BoardPoint p(double x, double y, double z=0.0) {
         return BoardPoint(x,y,z);

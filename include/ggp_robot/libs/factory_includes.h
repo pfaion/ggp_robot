@@ -8,5 +8,7 @@
     REGISTER_TYPE(ClassName2, "identifier2");
 ---------------------------------------------------------------------------- */
 
+REGISTER_TYPE(PlanarBoard, "board");
+
 #include <ggp_robot/libs/chessboard.h>
 REGISTER_TYPE(ChessBoard, "chessboard");
