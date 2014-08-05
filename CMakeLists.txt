@@ -50,9 +50,21 @@ include_directories(
 # my own libraries
 # --------------------------------------------------- #
 add_library(ggp_robot_libs
-  src/libs/board.cpp
-  src/libs/chessboard.cpp
+
+  # library source files
+  src/libs/vision_controller.cpp
+  src/libs/boards/board.cpp
+  src/libs/boards/boardpoint.cpp
+  src/libs/boards/chessboard1.cpp
+  src/libs/boardRec/board_recognition.cpp
+  src/libs/boardRec/chessboardrec1.cpp
+  src/libs/cameras/camera.cpp
+  src/libs/cameras/xtion.cpp
+
+  # header-only libraries and templates 
   include/ggp_robot/libs/factories.h
+  include/ggp_robot/libs/factoryclass.h
+  include/ggp_robot/libs/debug.h
 )
 target_link_libraries(ggp_robot_libs ${catkin_LIBRARIES})
 
@@ -83,10 +95,10 @@ target_link_libraries(ggp_robot_libs ${catkin_LIBRARIES})
 #
 #add_executable(chessboard_test src/chessboard_test.cpp)
 #target_link_libraries(chessboard_test ${catkin_LIBRARIES})
+#
+#add_executable(board_recognition src/board_recognition.cpp)
+#target_link_libraries(board_recognition ${catkin_LIBRARIES} ggp_robot_libs)
 
-add_executable(vision_controller src/vision_controller.cpp)
-target_link_libraries(vision_controller ${catkin_LIBRARIES} ggp_robot_libs)
-
-add_executable(board_recognition src/board_recognition.cpp)
-target_link_libraries(board_recognition ${catkin_LIBRARIES} ggp_robot_libs)
+add_executable(vision_controller_node src/vision_controller_node.cpp)
+target_link_libraries(vision_controller_node ${catkin_LIBRARIES} ggp_robot_libs)
 
