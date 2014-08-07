@@ -3,6 +3,7 @@
 
 #include <map>
 #include <string>
+#include <boost/shared_ptr.hpp>
 
 /** Factory for derived type registration. Registration is done with macro:
   REGISTER_TYPE(PARENT_TYPE, TYPE, STRING)
@@ -15,17 +16,17 @@
 
   Code is mostly taken from:
   http://stackoverflow.com/questions/6137706#6144705 */
-template<class T>
+template<class Base>
 struct Factory {
 
   public:
     /** Creates the object from the corresponding string */
-    static T* create(const std::string& id) {
+    static boost::shared_ptr<Base> create(const std::string& id) {
       const typename Creators_t::const_iterator iter = static_creators().find(id);
-      return iter == static_creators().end() ? 0 : (*iter->second)();
+      return iter == static_creators().end() ? boost::shared_ptr<Base>() : (*iter->second)();
     }
 
-    typedef T* Creator_t();
+    typedef boost::shared_ptr<Base> Creator_t();
     typedef std::map<std::string, Creator_t*> Creators_t;
 
     /** Get a static instance of the map */
@@ -35,8 +36,8 @@ struct Factory {
     }
 
     /** Inner class for registering types */
-    template<class T2 = int> struct Register {
-      static T* create() { return new T2(); };
+    template<class T = int> struct Register {
+      static boost::shared_ptr<Base> create() { return boost::shared_ptr<Base>(new T()); };
       static Creator_t* init_creator(const std::string& id) {
         return static_creators()[id] = create;
       }

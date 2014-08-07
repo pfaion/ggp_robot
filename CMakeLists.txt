@@ -52,7 +52,6 @@ include_directories(
 add_library(ggp_robot_libs
 
   # library source files
-  src/libs/vision_controller.cpp
   src/libs/boards/board.cpp
   src/libs/boards/boardpoint.cpp
   src/libs/boards/chessboard1.cpp
@@ -62,9 +61,10 @@ add_library(ggp_robot_libs
   src/libs/cameras/xtion.cpp
 
   # header-only libraries and templates 
-  include/ggp_robot/libs/factories.h
-  include/ggp_robot/libs/factoryclass.h
-  include/ggp_robot/libs/debug.h
+  include/ggp_robot/libs/tools/factories.h
+  include/ggp_robot/libs/tools/factoryclass.h
+  include/ggp_robot/libs/tools/debug.h
+  include/ggp_robot/libs/tools/keylistener.h
 )
 target_link_libraries(ggp_robot_libs ${catkin_LIBRARIES})
 

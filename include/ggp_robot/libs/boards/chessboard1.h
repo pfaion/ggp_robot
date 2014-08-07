@@ -12,7 +12,6 @@ class BoardPoint;
 class ChessBoard1 : public PlanarBoard {
 
   public:
-
     const double FIELD_SIZE;
 
     std::vector<BoardPoint> corners;

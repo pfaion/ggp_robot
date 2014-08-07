@@ -1,7 +1,7 @@
 #ifndef __GGP_ROBOT_FACTORIES_H
 #define __GGP_ROBOT_FACTORIES_H
 
-#include <ggp_robot/libs/factoryclass.h>
+#include <ggp_robot/libs/tools/factoryclass.h>
 
 /** ---------------------------------------------------------------------------
   FACTORY REGISTRATION

@@ -1,13 +1,11 @@
 #ifndef __GGP_ROBOT_BOARD_H
 #define __GGP_ROBOT_BOARD_H
 
-// forward declare
-class BoardPoint;
-
 // includes
 #include <map>
 #include <vector>
 #include <string>
+#include <ggp_robot/libs/boards/boardpoint.h>
 
 //==============================================================================
 

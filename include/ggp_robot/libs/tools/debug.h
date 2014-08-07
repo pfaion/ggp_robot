@@ -1,6 +1,8 @@
 #ifndef __GGP_ROBOT_DEBUG_H
 #define __GGP_ROBOT_DEBUG_H
 
+#include <iostream>
+
 std::string print_color(std::string name) {
   if(name == "black") return "\x1b[30m";
   if(name == "red") return "\x1b[31m";
