@@ -12,7 +12,7 @@
 class PlanarBoard {
 
   public:
-    typedef std::map<std::string,std::vector<BoardPoint> > RegionLayout;
+    typedef std::map<std::string,std::vector<cv::Point3f> > RegionLayout;
  
     RegionLayout regions;
 
@@ -24,7 +24,7 @@ class PlanarBoard {
     // instead of intrinsic board coordinates.
     // To implement a specific transformation, just override this function in a
     // derived class.
-    BoardPoint p(double x, double y, double z=0.0);
+    virtual BoardPoint p(float x, float y, float z=0.0);
 
 };
 

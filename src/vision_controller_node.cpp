@@ -74,6 +74,7 @@ VisionController::VisionController()
   }
   PRINT(green, "[VC] Successfully created camera of type '"
     << cameraClass << "'");
+  cam->setImageTopic("/camera/rgb/image_raw");
 
   // success
   PRINT(green, "[VC] Initialization complete.");

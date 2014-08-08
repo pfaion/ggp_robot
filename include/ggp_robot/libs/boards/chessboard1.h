@@ -12,13 +12,20 @@ class BoardPoint;
 class ChessBoard1 : public PlanarBoard {
 
   public:
-    const double FIELD_SIZE;
+    typedef std::map<std::string,std::vector<cv::Point3f> > RegionLayout;
+    const float FIELD_SIZE;
 
-    std::vector<BoardPoint> corners;
+    std::vector<cv::Point3f> corners;
+
+    cv::Point3f center;
 
     ChessBoard1();
 
-    BoardPoint p(double x, double y, double z=0.0);
+    RegionLayout getRotatedLayout(float angle);
+    std::vector<cv::Point3f> getRotatedRegion(std::string name, float angle);
+    virtual BoardPoint p(float x, float y, float z=0.0);
+
+    float markerPerformanceIndicator(cv::Mat roi, cv::Mat mask);
 
 };
 

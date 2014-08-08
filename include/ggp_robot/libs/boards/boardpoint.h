@@ -10,16 +10,16 @@
 
 struct BoardPoint{
   public:
-    double x;
-    double y;
-    double z;
+    float x;
+    float y;
+    float z;
 
-    BoardPoint(double x, double y, double z=0.0);
+    BoardPoint(float x, float y, float z=0.0);
 
     friend std::ostream& operator<<(std::ostream& out, const BoardPoint& p);
 
-    operator cv::Point3d();
-    operator cv::Point2d();
+    operator cv::Point3f();
+    operator cv::Point2f();
     operator Eigen::Vector3d();
 };
 

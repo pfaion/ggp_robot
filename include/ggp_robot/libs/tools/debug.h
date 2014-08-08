@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-std::string print_color(std::string name) {
+inline std::string print_color(std::string name) {
   if(name == "black") return "\x1b[30m";
   if(name == "red") return "\x1b[31m";
   if(name == "green") return "\x1b[32m";
