@@ -16,6 +16,7 @@
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <visualization_msgs/Marker.h>
 #include <ggp_robot/libs/boards/board.h>
 #include <ggp_robot/libs/boards/chessboard1.h>
 #include <ggp_robot/libs/tools/debug.h>
@@ -26,7 +27,7 @@ ChessBoardRec1::ChessBoardRec1() {
   PRINT("[BREC] Recognizer initializing...");
 }
 
-void ChessBoardRec1::setBoard(boost::shared_ptr<PlanarBoard> bp) {
+void ChessBoardRec1::setBoard(boost::shared_ptr<PlanarBoard>& bp) {
   PRINT("[BREC] Setting board.");
   board = boost::dynamic_pointer_cast<ChessBoard1>(bp);
   if(!board) {
@@ -35,7 +36,7 @@ void ChessBoardRec1::setBoard(boost::shared_ptr<PlanarBoard> bp) {
   }
 }
 
-void ChessBoardRec1::setCamera(boost::shared_ptr<Camera> cp) {
+void ChessBoardRec1::setCamera(boost::shared_ptr<Camera>& cp) {
   PRINT("[BREC] Setting camera.");
   cam = cp;
 }
@@ -45,9 +46,14 @@ void ChessBoardRec1::start() {
 
   
   // initialize buffer for stability analysis 
-  boost::circular_buffer<Eigen::Vector3f> buffer(100);
+  int buffer_size = 100;
+  boost::circular_buffer<Eigen::Vector3f> buffer(buffer_size);
 
   bool done = false;
+
+  float angle = 0;
+  Eigen::Transform<float,3,Eigen::Affine> transform;
+  transform.setIdentity();
 
   while(ros::ok() && !done) {
     PRINT("[BREC] Grab an image...");
@@ -99,10 +105,11 @@ void ChessBoardRec1::start() {
     PRINT("[BREC] Processing rotational ambiguities.");
 
 
+
     std::vector<float> markerKPIs;
     // try four different rotations...
     for(int i=0; i < 4; i++) {
-      float angle = M_PI/2.0 * i;
+      angle = M_PI/2.0 * i;
 
       // get rotated marker ROI
       std::vector<cv::Point3f> marker = board->getRotatedRegion("marker", angle);
@@ -137,7 +144,9 @@ void ChessBoardRec1::start() {
     PRINT(green, "[BREC] Marker recognized. Internal rotation with " <<
         (maxIdx*90) << " degrees necessary.");
 
-    std::vector<cv::Point3f> marker = board->getRotatedRegion("marker", (M_PI/2.0*maxIdx));
+    angle = M_PI/2.0 * maxIdx;
+    board->angle = angle;
+    std::vector<cv::Point3f> marker = board->getRotatedRegion("marker");
     
     // create Eigen::Transform object for transforming in 3D space
     // opencv sadly cannot do pure affine 3D transforms without projecting to the image plane
@@ -149,25 +158,53 @@ void ChessBoardRec1::start() {
     cv2eigen(tvec, transMat);
     Eigen::Translation<float,3> translation(transMat);
     Eigen::AngleAxis<float> rotation(rotMat);
-    Eigen::Transform<float,3,Eigen::Affine> transform = translation * rotation;
+    transform = translation * rotation;
 
+    // for the stability analysis, take the first point of the marker region
     Eigen::Vector3f point_board(marker[0].x, marker[0].y, marker[0].z);
-    Eigen::Vector3f point_cam = 1000 * (transform * point_board);
+    Eigen::Vector3f point_cam = (transform * point_board);
 
-    if(buffer.full()) {
-      PRINT("[BREC] Buffer full, start analysing stability...");
+    
+    // if the buffer is full, a stability analysis is done...
+    if(!buffer.full()) {
+      PRINT("[BREC] Collecting samples... (" << buffer.size() << "/" << buffer.capacity() << ")");
+    } else {
+      PRINT("[BREC] " << buffer.size() << " samples, start stability analysis...");
       typedef boost::circular_buffer<Eigen::Vector3f>::iterator type;
-      Eigen::Vector3f sum(0,0,0);
+
+      // note: there is a build-in library for statistical analysis of
+      // boost-containers, but I encountered a compile-error that I was not able
+      // to get rid of, so I did it by hand
+
+      // calculate the mean of the samples
+      Eigen::Vector3f mean(0,0,0);
       int n = 0;
       for(type it=buffer.begin(); it != buffer.end(); ++it) {
-        sum += (*it); 
+        mean += (*it); 
         n++;
       }
-      Eigen::Vector3f mean = sum/n;
+      mean = mean/n;
+
+      // calculate the standart deviation of the samples
+      Eigen::Vector3f var(0,0,0);
+      for(type it=buffer.begin(); it != buffer.end(); ++it) {
+        var += (((*it) - mean).array() * ((*it) - mean).array()).matrix();
+      }
+      var = var/n;
+      Eigen::Vector3f std = var.array().sqrt();
+
+      // the stability criterion is a low variability in the samples and then a
+      // new sample that is close to the mean
+      float stdNorm = std.norm();
       Eigen::Vector3f diff = (mean - point_cam).array().abs().matrix();
-      float norm = diff.norm();
-      PRINT(red, norm);
-      if(norm < 0.05) {
+      float diffNorm = diff.norm();
+
+      PRINT(red, "std.norm: " << stdNorm);
+      PRINT(red, "diff.norm: " << diffNorm);
+      // TODO: Make stability criteria dependent on buffer-size... apperently
+      // more samples lead to greater variability (mean might be independent...
+      // test this)
+      if(stdNorm < 1 && diffNorm < 0.1) {
         PRINT(magenta, "[BREC] Stable solution found! Stopping here!");
         done = true;
       }
@@ -199,7 +236,8 @@ void ChessBoardRec1::start() {
     cv::waitKey(1);
 
   }
-
+  PRINT("[BREC] Initialization done. Setting board parameters...");
+  board->angle = angle;
+  board->transform = transform;
   PRINT("[BREC] Stopping...");
 }
-

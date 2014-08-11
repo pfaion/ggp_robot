@@ -9,6 +9,9 @@
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/image_encodings.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <pcl_conversions/pcl_conversions.h>
+#include <pcl/point_cloud.h>
 #include <opencv2/core/core.hpp>
 
 class Camera {
@@ -24,15 +27,22 @@ class Camera {
     cv_bridge::CvImageConstPtr getCvImage();
     void setImageTopic(std::string imgTopic);
 
+    pcl::PCLPointCloud2::ConstPtr getPclCloud();
+    void setCloudTopic(std::string cloutTopic);
+
   private:
     ros::NodeHandle nh;
     image_transport::ImageTransport imgTrans;
     image_transport::Subscriber imgSub;
-    ros::CallbackQueue cbq;
-    boost::mutex mtx;
+    ros::Subscriber cloudSub;
+
+    boost::mutex imgMtx;
     cv_bridge::CvImageConstPtr storedImage;
     void imageCb(const sensor_msgs::ImageConstPtr& msg);
 
+    boost::mutex pclMtx;
+    pcl::PCLPointCloud2::ConstPtr storedCloud;
+    void cloudCb(const sensor_msgs::PointCloud2& cloud);
 };
 
 #endif

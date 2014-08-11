@@ -29,6 +29,10 @@ ChessBoard1::ChessBoard1()
       this->regions[d].push_back(p(x+1,y));
       this->regions[d].push_back(p(x+1,y+1));
       this->regions[d].push_back(p(x,y+1));
+      this->regions[d].push_back(p(x,y,2));
+
+      // TODO dirty hack! make function for creating cv or eigen points
+      // specifically
     }
   }
 
@@ -52,6 +56,25 @@ ChessBoard1::ChessBoard1()
 
   // initialize rotation center
   this->center = p(2,2);
+
+  // set initial rotation to 0
+  this->angle = 0.0;
+
+  // set initial transformation to identity
+  this->transform.setIdentity();
+}
+
+Eigen::Matrix3f ChessBoard1::getHullMatrix(std::string name) {
+  std::vector<cv::Point3f> reg = getRotatedTransformedRegion(name);
+  cv::Point3f nP = reg[0];
+  cv::Point3f xP = reg[1];
+  cv::Point3f yP = reg[3];
+  cv::Point3f zP = reg[4];
+  Eigen::Matrix3f M;
+  M << (xP.x - nP.x) , (yP.x - nP.x) , (zP.x - nP.x)
+    , (xP.y - nP.y) , (yP.y - nP.y) , (zP.y - nP.y)
+    , (xP.z - nP.z) , (yP.z - nP.z) , (zP.z - nP.z);
+  return M;
 }
 
 BoardPoint ChessBoard1::p(float x, float y, float z) {
@@ -67,6 +90,10 @@ ChessBoard1::RegionLayout ChessBoard1::getRotatedLayout(float angle) {
   return rotLayout;
 }
 
+ChessBoard1::RegionLayout ChessBoard1::getRotatedLayout() {
+  return getRotatedLayout(this->angle);
+}
+
 std::vector<cv::Point3f> ChessBoard1::getRotatedRegion(std::string name, float angle) {
   std::vector<cv::Point3f> v = regions[name];
   std::vector<cv::Point3f> rotRegion;
@@ -79,6 +106,31 @@ std::vector<cv::Point3f> ChessBoard1::getRotatedRegion(std::string name, float a
   }
   return rotRegion;
 }
+
+std::vector<cv::Point3f> ChessBoard1::getRotatedRegion(std::string name) {
+  return getRotatedRegion(name, this->angle);
+}
+
+ChessBoard1::RegionLayout ChessBoard1::getRotatedTransformedLayout() {
+  RegionLayout newLayout;
+  typedef RegionLayout::iterator type;
+  for(type it = regions.begin(); it != regions.end(); ++it) {
+    newLayout[it->first] = getRotatedTransformedRegion(it->first);
+  }
+}
+
+std::vector<cv::Point3f> ChessBoard1::getRotatedTransformedRegion(std::string name) {
+  std::vector<cv::Point3f> v = getRotatedRegion(name);
+  std::vector<cv::Point3f> newRegion;
+  typedef std::vector<cv::Point3f>::iterator type;
+  for(type it = v.begin(); it != v.end(); ++it) {
+    Eigen::Vector3f p((*it).x, (*it).y, (*it).z);
+    Eigen::Vector3f rotP = transform * p;
+    newRegion.push_back(cv::Point3f(rotP[0], rotP[1], rotP[2]));
+  }
+  return newRegion;
+}
+  
 
 float ChessBoard1::markerPerformanceIndicator(cv::Mat roi, cv::Mat mask) {
   cv::Mat avgMatBGR = cv::Mat(1,1,roi.type());

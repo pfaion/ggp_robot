@@ -3,6 +3,8 @@
 #include <vector>
 #include <string>
 #include <unistd.h>
+#include <pcl_conversions/pcl_conversions.h>
+#include <pcl/point_cloud.h>
 #include <ggp_robot/libs/tools/debug.h>
 
 
@@ -15,7 +17,8 @@ std::vector<double> Camera::getDistortionCoefficients() {
 Camera::Camera()
 : nh(),
   imgTrans(nh),
-  storedImage()
+  storedImage(),
+  storedCloud()
 {
   //nh.setCallbackQueue(&cbq);
   PRINT("cam init");
@@ -25,6 +28,10 @@ Camera::~Camera() {}
 
 void Camera::setImageTopic(std::string imageTopic) {
   imgSub = imgTrans.subscribe(imageTopic, 1, &Camera::imageCb, this);
+}
+
+void Camera::setCloudTopic(std::string cloudTopic) {
+  cloudSub = nh.subscribe(cloudTopic, 1, &Camera::cloudCb, this);
 }
 
 void Camera::imageCb(const sensor_msgs::ImageConstPtr& msg) {
@@ -37,19 +44,40 @@ void Camera::imageCb(const sensor_msgs::ImageConstPtr& msg) {
     ROS_ERROR("cv_bridge exception: %s", e.what());
     return;
   }
-  mtx.lock();
+  imgMtx.lock();
   storedImage = cv_ptr;
-  mtx.unlock();
+  imgMtx.unlock();
 }
 
 cv_bridge::CvImageConstPtr Camera::getCvImage(){
   cv_bridge::CvImageConstPtr copy;
   do {
     ros::spinOnce();
-    mtx.lock();
+    imgMtx.lock();
     copy = storedImage;
-    mtx.unlock();
+    imgMtx.unlock();
   } while(!copy);
   PRINT("[CAM] Returning image.");
+  return copy;
+} 
+
+void Camera::cloudCb(const sensor_msgs::PointCloud2& cloud) {
+  pcl::PCLPointCloud2::Ptr pc2(new pcl::PCLPointCloud2());
+  PRINT("[CAM] Cloud received. Converting.");
+  pcl_conversions::toPCL(cloud, *pc2);
+  pclMtx.lock();
+  storedCloud = pc2;
+  pclMtx.unlock();
+}
+
+pcl::PCLPointCloud2::ConstPtr Camera::getPclCloud(){
+  pcl::PCLPointCloud2::ConstPtr copy;
+  do {
+    ros::spinOnce();
+    pclMtx.lock();
+    copy = storedCloud;
+    pclMtx.unlock();
+  } while(!copy);
+  PRINT("[CAM] Returning cloud.");
   return copy;
 } 

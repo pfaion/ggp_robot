@@ -55,10 +55,12 @@ add_library(ggp_robot_libs
   src/libs/boards/board.cpp
   src/libs/boards/boardpoint.cpp
   src/libs/boards/chessboard1.cpp
-  src/libs/boardRec/board_recognition.cpp
-  src/libs/boardRec/chessboardrec1.cpp
   src/libs/cameras/camera.cpp
   src/libs/cameras/xtion.cpp
+  src/libs/boardRec/board_recognition.cpp
+  src/libs/boardRec/chessboardrec1.cpp
+  src/libs/stateRec/state_recognition.cpp
+  src/libs/stateRec/chessstaterec1.cpp
 
   # header-only libraries and templates 
   include/ggp_robot/libs/tools/factories.h

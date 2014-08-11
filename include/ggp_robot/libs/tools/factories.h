@@ -26,11 +26,14 @@
 #include <ggp_robot/libs/boards/chessboard1.h>
 REGISTER_TYPE(PlanarBoard, ChessBoard1, "chessboard1");
 
+#include <ggp_robot/libs/cameras/xtion.h>
+REGISTER_TYPE(Camera, Xtion, "xtion");
+
 #include <ggp_robot/libs/boardRec/chessboardrec1.h>
 REGISTER_TYPE(BoardRecognition, ChessBoardRec1, "chessboardrec1");
 
-#include <ggp_robot/libs/cameras/xtion.h>
-REGISTER_TYPE(Camera, Xtion, "xtion");
+#include <ggp_robot/libs/stateRec/chessstaterec1.h>
+REGISTER_TYPE(StateRecognition, ChessStateRec1, "chessstaterec1");
 
 
 #endif
