@@ -49,14 +49,19 @@ void Camera::imageCb(const sensor_msgs::ImageConstPtr& msg) {
   imgMtx.unlock();
 }
 
-cv_bridge::CvImageConstPtr Camera::getCvImage(){
+cv_bridge::CvImageConstPtr Camera::getCvImage(bool newOne){
   cv_bridge::CvImageConstPtr copy;
+  if(newOne) {
+    imgMtx.lock();
+    storedImage = cv_bridge::CvImageConstPtr();
+    imgMtx.unlock();
+  }
   do {
     ros::spinOnce();
     imgMtx.lock();
     copy = storedImage;
     imgMtx.unlock();
-  } while(!copy);
+  } while(ros::ok() && !copy);
   PRINT("[CAM] Returning image.");
   return copy;
 } 
@@ -77,7 +82,7 @@ pcl::PCLPointCloud2::ConstPtr Camera::getPclCloud(){
     pclMtx.lock();
     copy = storedCloud;
     pclMtx.unlock();
-  } while(!copy);
+  } while(ros::ok() && !copy);
   PRINT("[CAM] Returning cloud.");
   return copy;
 } 

@@ -123,7 +123,6 @@ void VisionController::spin() {
       srec->setBoard(board);
       srec->setCamera(cam);
       srec->start();
-
       // check for pressed keys
       char key = x.getChar();
       if(!key) continue;

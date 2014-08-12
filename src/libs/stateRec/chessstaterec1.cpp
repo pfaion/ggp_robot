@@ -24,12 +24,15 @@
 #include <ggp_robot/libs/boards/chessboard1.h>
 #include <ggp_robot/libs/tools/debug.h>
 
-
+void testFun(pcl::visualization::PCLVisualizer& v) {
+  v.setBackgroundColor(0.5, 0.5, 0.5);
+}
 
 ChessStateRec1::ChessStateRec1()
 : viewer("test")
 {
   PRINT("[SREC] Recognizer initializing...");
+  viewer.runOnVisualizationThreadOnce(testFun);
 }
 
 void ChessStateRec1::setBoard(boost::shared_ptr<PlanarBoard>& bp) {
@@ -53,26 +56,33 @@ void ChessStateRec1::start() {
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc(new pcl::PointCloud<pcl::PointXYZRGB>());
   pcl::fromPCLPointCloud2(*cloud, *pc);
   
-  
-  Eigen::Matrix3f tmp = board->getHullMatrix("a1");
-  PRINT(tmp);
-  cv::Point3f cvNP = board->getRotatedTransformedRegion("a1")[0];
-  Eigen::Vector3f eigNP(cvNP.x, cvNP.y, cvNP.z);
-  
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr filtered(new pcl::PointCloud<pcl::PointXYZRGB>());
-  int count = 0;
-  int allcount = 0;
-  for(size_t i=0; i < pc->points.size(); ++i) {
-    allcount++;
-    Eigen::Vector3f pt(pc->points[i].x, pc->points[i].y, pc->points[i].z); 
-    Eigen::Vector3f v = tmp.fullPivLu().solve(pt - eigNP);
-    if(0 <= v[0] && v[0] <= 1 && 0 <= v[1] && v[1] <= 1 && 0 <= v[2] && v[2] <= 1) {
-      pcl::PointXYZRGB copy(pc->points[i]);
-      filtered->push_back(copy);
-      count++;
-    }
+
+
+
+  pcl::CropBox<pcl::PointXYZRGB> crop;
+  std::vector<cv::Point3f> reg = board->getRotatedRegion("a1");
+  cv::Point3f min = reg[0];
+  cv::Point3f max = reg[0];
+  typedef std::vector<cv::Point3f>::iterator type;
+  for(type it=reg.begin(); it != reg.end(); ++it) {
+    min.x = std::min(min.x, (*it).x);
+    min.y = std::min(min.y, (*it).y);
+    min.z = std::min(min.z, (*it).z);
+    max.x = std::max(max.x, (*it).x);
+    max.y = std::max(max.y, (*it).y);
+    max.z = std::max(max.z, (*it).z);
   }
-  PRINT(count << "/" << allcount);
+  crop.setMin(Eigen::Vector4f(min.x, min.y, min.z, 0));
+  crop.setMax(Eigen::Vector4f(max.x, max.y, max.z, 0));
+  // here we need the inverse...
+  // apparently the filter transforms the cloud by the inverse transform and
+  // then applies the cutoff filters
+  crop.setTransform(board->transform.inverse());
+  crop.setInputCloud(pc);
+  crop.filter(*filtered);
+  PRINT(filtered->points.size());
+
 
   viewer.showCloud(filtered);
 

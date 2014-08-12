@@ -24,7 +24,7 @@ class Camera {
     virtual ~Camera();
     Camera();
 
-    cv_bridge::CvImageConstPtr getCvImage();
+    cv_bridge::CvImageConstPtr getCvImage(bool newOne=false);
     void setImageTopic(std::string imgTopic);
 
     pcl::PCLPointCloud2::ConstPtr getPclCloud();
@@ -37,6 +37,7 @@ class Camera {
     ros::Subscriber cloudSub;
 
     boost::mutex imgMtx;
+    bool newImg;
     cv_bridge::CvImageConstPtr storedImage;
     void imageCb(const sensor_msgs::ImageConstPtr& msg);
 
