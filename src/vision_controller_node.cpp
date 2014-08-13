@@ -68,7 +68,7 @@ VisionController::VisionController()
   PRINT(green, "[VC] Successfully created camera of type '"
     << cameraClass << "'");
   cam->setImageTopic("/camera/rgb/image_raw");
-  cam->setCloudTopic("/camera/depth_registered/points");
+  cam->setCloudTopic("/camera/depth/points");
 
 
   // try to load board recognition
@@ -116,12 +116,15 @@ void VisionController::spin() {
     brec->start();
 
 
+
+    cam->listenToImageStream(false);
+    cam->listenToCloudStream(true);
+    srec->setBoard(board);
+    srec->setCamera(cam);
     // detect state until reset or quit
     while(ros::ok()) {
       PRINT("[VC] Recognizing State...");
 
-      srec->setBoard(board);
-      srec->setCamera(cam);
       srec->start();
       // check for pressed keys
       char key = x.getChar();

@@ -17,9 +17,13 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <visualization_msgs/Marker.h>
+#include <pcl/ModelCoefficients.h>
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/filters/crop_box.h>
 #include <pcl/point_types.h>
+#include <pcl/sample_consensus/method_types.h>
+#include <pcl/sample_consensus/model_types.h>
+#include <pcl/segmentation/sac_segmentation.h>
 #include <ggp_robot/libs/boards/board.h>
 #include <ggp_robot/libs/boards/chessboard1.h>
 #include <ggp_robot/libs/tools/debug.h>
@@ -32,7 +36,12 @@ ChessStateRec1::ChessStateRec1()
 : viewer("test")
 {
   PRINT("[SREC] Recognizer initializing...");
-  viewer.runOnVisualizationThreadOnce(testFun);
+
+  // viewer settings have to be set with a function...
+  struct local{ static void settings(pcl::visualization::PCLVisualizer& v) {
+      v.setBackgroundColor(0.5, 0.5, 0.5);
+  }};
+  viewer.runOnVisualizationThreadOnce(local::settings);
 }
 
 void ChessStateRec1::setBoard(boost::shared_ptr<PlanarBoard>& bp) {
@@ -53,38 +62,55 @@ void ChessStateRec1::start() {
   PRINT("[SREC] Starting...");
   
   pcl::PCLPointCloud2::ConstPtr cloud = cam->getPclCloud();
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc(new pcl::PointCloud<pcl::PointXYZRGB>());
+  pcl::PointCloud<pcl::PointXYZ>::Ptr pc(new pcl::PointCloud<pcl::PointXYZ>());
   pcl::fromPCLPointCloud2(*cloud, *pc);
   
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr filtered(new pcl::PointCloud<pcl::PointXYZRGB>());
+  pcl::PointCloud<pcl::PointXYZ>::Ptr filtered(new pcl::PointCloud<pcl::PointXYZ>());
 
 
+  std::map<std::string,int> states;
 
-  pcl::CropBox<pcl::PointXYZRGB> crop;
-  std::vector<cv::Point3f> reg = board->getRotatedRegion("a1");
-  cv::Point3f min = reg[0];
-  cv::Point3f max = reg[0];
-  typedef std::vector<cv::Point3f>::iterator type;
-  for(type it=reg.begin(); it != reg.end(); ++it) {
-    min.x = std::min(min.x, (*it).x);
-    min.y = std::min(min.y, (*it).y);
-    min.z = std::min(min.z, (*it).z);
-    max.x = std::max(max.x, (*it).x);
-    max.y = std::max(max.y, (*it).y);
-    max.z = std::max(max.z, (*it).z);
+  typedef std::map<std::string,std::vector<cv::Point3f> >::iterator typeit;
+  for(typeit it=board->regions.begin(); it != board->regions.end(); ++it) {
+  
+
+    std::string name = it->first;
+
+    pcl::CropBox<pcl::PointXYZ> crop;
+    std::vector<cv::Point3f> reg = board->getRotatedRegion(name);
+    cv::Point3f min = reg[0];
+    cv::Point3f max = reg[0];
+    typedef std::vector<cv::Point3f>::iterator type;
+    for(type it=reg.begin(); it != reg.end(); ++it) {
+      min.x = std::min(min.x, (*it).x);
+      min.y = std::min(min.y, (*it).y);
+      min.z = std::min(min.z, (*it).z);
+      max.x = std::max(max.x, (*it).x);
+      max.y = std::max(max.y, (*it).y);
+      max.z = std::max(max.z, (*it).z);
+    }
+    // enlarge boundingbox
+    float enlarge = 0;
+    min.x -= (max.x-min.x)*enlarge;
+    min.y -= (max.y-min.y)*enlarge;
+    min.z += (max.z-min.z)*0.3;
+    max.x += (max.x-min.x)*enlarge;
+    max.y += (max.y-min.y)*enlarge;
+    max.z += (max.z-min.z)*enlarge;
+    crop.setMin(Eigen::Vector4f(min.x, min.y, min.z, 0));
+    crop.setMax(Eigen::Vector4f(max.x, max.y, max.z, 0));
+    // here we need the inverse...
+    // apparently the filter transforms the cloud by the inverse transform and
+    // then applies the cutoff filters
+    crop.setTransform(board->transform.inverse());
+    crop.setInputCloud(pc);
+    crop.filter(*filtered);
+    
+    int numPoints = filtered->points.size();
+    int state = numPoints > 100;
+    states[name] = state;
+
   }
-  crop.setMin(Eigen::Vector4f(min.x, min.y, min.z, 0));
-  crop.setMax(Eigen::Vector4f(max.x, max.y, max.z, 0));
-  // here we need the inverse...
-  // apparently the filter transforms the cloud by the inverse transform and
-  // then applies the cutoff filters
-  crop.setTransform(board->transform.inverse());
-  crop.setInputCloud(pc);
-  crop.filter(*filtered);
-  PRINT(filtered->points.size());
-
-
-  viewer.showCloud(filtered);
-
+  board->print(states);
   PRINT("[SREC] Stopping...");
 }

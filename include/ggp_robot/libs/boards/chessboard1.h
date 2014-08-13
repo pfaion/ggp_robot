@@ -39,12 +39,12 @@ class ChessBoard1 : public PlanarBoard {
     RegionLayout getRotatedTransformedLayout();
     std::vector<cv::Point3f> getRotatedTransformedRegion(std::string name);
 
-    // TODO TMP
-    Eigen::Matrix3f getHullMatrix(std::string name);
-
     float markerPerformanceIndicator(cv::Mat roi, cv::Mat mask);
 
 
+
+    void print(std::map<std::string,int> s);
+      
 };
 
 

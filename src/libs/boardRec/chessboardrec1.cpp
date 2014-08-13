@@ -46,14 +46,17 @@ void ChessBoardRec1::start() {
 
   
   // initialize buffer for stability analysis 
-  int buffer_size = 100;
+  int buffer_size = 50;
   boost::circular_buffer<Eigen::Vector3f> buffer(buffer_size);
-
   bool done = false;
 
   float angle = 0;
   Eigen::Transform<float,3,Eigen::Affine> transform;
   transform.setIdentity();
+
+  // we need only the camera's image stream
+  cam->listenToImageStream(true);
+  cam->listenToCloudStream(false);
 
   while(ros::ok() && !done) {
     PRINT("[BREC] Grab an image...");
@@ -199,12 +202,13 @@ void ChessBoardRec1::start() {
       Eigen::Vector3f diff = (mean - point_cam).array().abs().matrix();
       float diffNorm = diff.norm();
 
-      PRINT(red, "std.norm: " << stdNorm);
-      PRINT(red, "diff.norm: " << diffNorm);
+      PRINT(red, "[BREC] Variability amongst samples: " << stdNorm);
+      PRINT(red, "[BREC] Distance to average-sample: " << diffNorm);
       // TODO: Make stability criteria dependent on buffer-size... apperently
       // more samples lead to greater variability (mean might be independent...
       // test this)
-      if(stdNorm < 1 && diffNorm < 0.1) {
+      // also: magic number. avoid.
+      if(stdNorm < 0.001 && diffNorm < 0.001) {
         PRINT(magenta, "[BREC] Stable solution found! Stopping here!");
         done = true;
       }

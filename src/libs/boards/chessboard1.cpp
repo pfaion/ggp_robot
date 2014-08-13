@@ -3,9 +3,11 @@
 #include <vector>
 #include <string>
 #include <math.h>
+#include <ros/ros.h>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <boost/assign/std/vector.hpp>
 #include <ggp_robot/libs/boards/boardpoint.h>
+#include <ggp_robot/libs/tools/debug.h>
 
 
 ChessBoard1::ChessBoard1()
@@ -21,9 +23,9 @@ ChessBoard1::ChessBoard1()
     desc += "a3", "b3", "c3", "d3", "x3"; 
     desc += "a4", "b4", "c4", "d4", "x4"; 
   }
-  for(int x = 0; x < 5; x++) {
-    for(int y = 0; y < 4; y++) {
-      std::string d = desc[x + 4*y];
+  for(int y = 0; y < 4; y++) {
+    for(int x = 0; x < 5; x++) {
+      std::string d = desc[x + 5*y];
       this->regions[d] = std::vector<cv::Point3f>();
       this->regions[d].push_back(p(x,y));
       this->regions[d].push_back(p(x+1,y));
@@ -37,6 +39,7 @@ ChessBoard1::ChessBoard1()
   }
 
   // initialize marker region description
+  this->regions["marker"] = std::vector<cv::Point3f>();
   this->regions["marker"].push_back(p(4,0));
   this->regions["marker"].push_back(p(5,0));
   this->regions["marker"].push_back(p(5,1));
@@ -62,19 +65,6 @@ ChessBoard1::ChessBoard1()
 
   // set initial transformation to identity
   this->transform.setIdentity();
-}
-
-Eigen::Matrix3f ChessBoard1::getHullMatrix(std::string name) {
-  std::vector<cv::Point3f> reg = getRotatedTransformedRegion(name);
-  cv::Point3f nP = reg[0];
-  cv::Point3f xP = reg[1];
-  cv::Point3f yP = reg[3];
-  cv::Point3f zP = reg[4];
-  Eigen::Matrix3f M;
-  M << (xP.x - nP.x) , (yP.x - nP.x) , (zP.x - nP.x)
-    , (xP.y - nP.y) , (yP.y - nP.y) , (zP.y - nP.y)
-    , (xP.z - nP.z) , (yP.z - nP.z) , (zP.z - nP.z);
-  return M;
 }
 
 BoardPoint ChessBoard1::p(float x, float y, float z) {
@@ -151,4 +141,24 @@ float ChessBoard1::markerPerformanceIndicator(cv::Mat roi, cv::Mat mask) {
   return reddishness * (avgHSV[1]/255) * (avgHSV[2]/255);
 } 
 
+
+void ChessBoard1::print(std::map<std::string,int> s) {
+  struct {
+    std::string operator() (int state) {
+      switch(state) {
+        case 0: return " ";
+        case 1: return "X";
+      }
+    }
+  } r;
+  std::cout
+    << "   a b c d x " << std::endl
+    << "  +---------+" << std::endl
+    << "4 |" << r(s["a4"]) << "|" << r(s["b4"]) << "|" << r(s["c4"]) << "|" << r(s["d4"]) << "|" << r(s["x4"]) << "|" << std::endl
+    << "4 |" << r(s["a3"]) << "|" << r(s["b3"]) << "|" << r(s["c3"]) << "|" << r(s["d3"]) << "|" << r(s["x3"]) << "|" << std::endl
+    << "4 |" << r(s["a2"]) << "|" << r(s["b2"]) << "|" << r(s["c2"]) << "|" << r(s["d2"]) << "|" << r(s["x2"]) << "|" << std::endl
+    << "4 |" << r(s["a1"]) << "|" << r(s["b1"]) << "|" << r(s["c1"]) << "|" << r(s["d1"]) << "|" << r(s["x1"]) << "|" << std::endl
+    << "  +---------+" << std::endl
+    ;
+}
 

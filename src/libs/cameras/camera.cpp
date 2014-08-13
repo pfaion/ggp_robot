@@ -2,6 +2,7 @@
 #include <ggp_robot/libs/cameras/camera.h>
 #include <vector>
 #include <string>
+#include <sys/time.h>
 #include <unistd.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
@@ -18,71 +19,118 @@ Camera::Camera()
 : nh(),
   imgTrans(nh),
   storedImage(),
-  storedCloud()
+  storedCloud(),
+  imgActive(false),
+  cloudActive(false)
 {
-  //nh.setCallbackQueue(&cbq);
-  PRINT("cam init");
+  PRINT("[CAM] init");
+  imgLastStamp = msecStamp();
+  cloudLastStamp = msecStamp();
+}
+
+long long int Camera::msecStamp() {
+  struct timeval tp;
+  gettimeofday(&tp, NULL);
+  long long int stamp = tp.tv_sec;
+  stamp *= 1000000;
+  stamp += tp.tv_usec;
+  return stamp;
 }
 
 Camera::~Camera() {}
 
-void Camera::setImageTopic(std::string imageTopic) {
-  imgSub = imgTrans.subscribe(imageTopic, 1, &Camera::imageCb, this);
+void Camera::setImageTopic(std::string top) {
+  imgTopic = top;
 }
 
-void Camera::setCloudTopic(std::string cloudTopic) {
-  cloudSub = nh.subscribe(cloudTopic, 1, &Camera::cloudCb, this);
+void Camera::listenToImageStream(bool state) {
+  if(state == imgActive) return;
+  if(state) {
+    imgSub = imgTrans.subscribe(imgTopic, 1, &Camera::imageCb, this);
+    PRINT("[CAM] Looking for image stream.");
+    while(ros::ok() && !imgActive) {
+      ros::spinOnce();
+      imgMtx.lock();
+      imgActive = storedImage;
+      imgMtx.unlock();
+    }
+    PRINT(green, "[CAM] Found image stream!");
+  } else {
+    imgSub.shutdown();
+    imgActive = false;
+  }
+}
+
+void Camera::setCloudTopic(std::string top) {
+  cloudTopic = top;
+}
+
+void Camera::listenToCloudStream(bool state) {
+  if(state == cloudActive) return;
+  if(state) {
+    cloudSub = nh.subscribe(cloudTopic, 1, &Camera::cloudCb, this);
+    PRINT("[CAM] Looking for cloud stream.");
+    storedCloud.reset();
+    while(ros::ok() && !cloudActive) {
+      ros::spinOnce();
+      cloudMtx.lock();
+      cloudActive = storedCloud;
+      cloudMtx.unlock();
+    }
+    PRINT(green, "[CAM] Found cloud stream!");
+    PRINT(green, bool(storedCloud));
+  } else {
+    cloudSub.shutdown();
+    cloudActive = false;
+  }
 }
 
 void Camera::imageCb(const sensor_msgs::ImageConstPtr& msg) {
-  PRINT("[CAM] Image received. Converting.");
-  // convert sensor_msgs to opencv-Mat-like object
-  cv_bridge::CvImageConstPtr cv_ptr;
-  try {
-    cv_ptr = cv_bridge::toCvShare(msg, sensor_msgs::image_encodings::BGR8);
-  } catch (cv_bridge::Exception& e) {
-    ROS_ERROR("cv_bridge exception: %s", e.what());
-    return;
-  }
+  PRINT("[CAM] Image received.");
   imgMtx.lock();
-  storedImage = cv_ptr;
+  storedImage = msg;
+  imgLastStamp = msecStamp();
   imgMtx.unlock();
 }
 
-cv_bridge::CvImageConstPtr Camera::getCvImage(bool newOne){
-  cv_bridge::CvImageConstPtr copy;
-  if(newOne) {
-    imgMtx.lock();
-    storedImage = cv_bridge::CvImageConstPtr();
-    imgMtx.unlock();
-  }
+cv_bridge::CvImageConstPtr Camera::getCvImage(bool waitForNew){
+  long long int stamp = msecStamp();
+  // convert sensor_msgs to opencv-Mat-like object
+  cv_bridge::CvImageConstPtr cv;
   do {
     ros::spinOnce();
     imgMtx.lock();
-    copy = storedImage;
+    if(!waitForNew || imgLastStamp > stamp) {
+      cv = cv_bridge::toCvShare(storedImage, sensor_msgs::image_encodings::BGR8);
+    }
     imgMtx.unlock();
-  } while(ros::ok() && !copy);
-  PRINT("[CAM] Returning image.");
-  return copy;
+  } while(ros::ok() && !cv);
+  PRINT("[CAM] Converting and returning image.");
+  return cv;
 } 
 
-void Camera::cloudCb(const sensor_msgs::PointCloud2& cloud) {
-  pcl::PCLPointCloud2::Ptr pc2(new pcl::PCLPointCloud2());
-  PRINT("[CAM] Cloud received. Converting.");
-  pcl_conversions::toPCL(cloud, *pc2);
-  pclMtx.lock();
-  storedCloud = pc2;
-  pclMtx.unlock();
+void Camera::cloudCb(const sensor_msgs::PointCloud2::Ptr cloud) {
+  PRINT("[CAM] Cloud received.");
+  cloudMtx.lock();
+  storedCloud = cloud;
+  cloudLastStamp = msecStamp();
+  cloudMtx.unlock();
 }
 
-pcl::PCLPointCloud2::ConstPtr Camera::getPclCloud(){
-  pcl::PCLPointCloud2::ConstPtr copy;
+pcl::PCLPointCloud2::ConstPtr Camera::getPclCloud(bool waitForNew){
+  long long int stamp = msecStamp();
+  // convert cloud to pcl-blob
+  pcl::PCLPointCloud2::Ptr pc2(new pcl::PCLPointCloud2());
   do {
     ros::spinOnce();
-    pclMtx.lock();
-    copy = storedCloud;
-    pclMtx.unlock();
-  } while(ros::ok() && !copy);
-  PRINT("[CAM] Returning cloud.");
-  return copy;
+    cloudMtx.lock();
+    if(!waitForNew || (cloudLastStamp > stamp)) {
+      pcl_conversions::toPCL(*storedCloud, *pc2);
+      cloudMtx.unlock();
+      break;
+    }
+    cloudMtx.unlock();
+  } while(ros::ok());
+  PRINT("[CAM] Converting and returning cloud.");
+  return pc2;
 } 
