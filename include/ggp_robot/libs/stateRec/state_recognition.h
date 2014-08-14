@@ -12,7 +12,7 @@ class StateRecognition {
     virtual void setBoard(boost::shared_ptr<PlanarBoard>& board) = 0;
     virtual void setCamera(boost::shared_ptr<Camera>& cam) = 0;
 
-    virtual void start() = 0;
+    virtual bool start() = 0;
 
 };
 

@@ -13,7 +13,7 @@ class ChessStateRec1 : public StateRecognition {
     ChessStateRec1();
     virtual void setBoard(boost::shared_ptr<PlanarBoard>& bp);
     virtual void setCamera(boost::shared_ptr<Camera>& cp);
-    virtual void start(); 
+    virtual bool start(); 
 
   private:
     // this recognizer is only supposed to work for board type chessboard1

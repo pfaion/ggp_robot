@@ -102,10 +102,6 @@ VisionController::VisionController()
 void VisionController::spin() {
   PRINT("[VC] Starting Vision Controller...");
 
-  // set up key listener for restarting or quitting the vision controller
-  KeyListener x;
-  x.start();
-
   // loop as long as the vision controller is running
   while(ros::ok()) {
     PRINT("[VC] Recognizing Board...");
@@ -117,29 +113,15 @@ void VisionController::spin() {
 
 
 
+    PRINT("[VC] Recognizing State...");
     cam->listenToImageStream(false);
     cam->listenToCloudStream(true);
     srec->setBoard(board);
     srec->setCamera(cam);
-    // detect state until reset or quit
-    while(ros::ok()) {
-      PRINT("[VC] Recognizing State...");
 
-      srec->start();
-      // check for pressed keys
-      char key = x.getChar();
-      if(!key) continue;
-      if(key == 'r') {
-        PRINT(blue, "[VC][USER] Restart!");
-        break;
-      }
-      if(key == 'q') {
-        PRINT(blue, "[VC][USER] Quit!"); 
-        ros::shutdown();
-      }
-    }
+    bool end = srec->start();
+    if(end) break;
   }
-  PRINT("[VC] Shutting down Vision Controller...");
 }
 
 
