@@ -45,7 +45,7 @@ VisionController::VisionController()
   ros::NodeHandle private_nh_("~");
   private_nh_.param("boardclass", boardClass, std::string("chessboard1"));
   private_nh_.param("cameraclass", cameraClass, std::string("xtion"));
-  private_nh_.param("boardrecognitionclass", boardRecognitionClass, std::string("chessboardrec1"));
+  private_nh_.param("boardrecognitionclass", boardRecognitionClass, std::string("chessboardrec2"));
   private_nh_.param("staterecognitionclass", stateRecognitionClass, std::string("chessstaterec1"));
 
   // try to load board
@@ -68,7 +68,8 @@ VisionController::VisionController()
   PRINT(green, "[VC] Successfully created camera of type '"
     << cameraClass << "'");
   cam->setImageTopic("/camera/rgb/image_raw");
-  cam->setCloudTopic("/camera/depth/points");
+  //cam->setCloudTopic("/camera/depth/points");
+  cam->setCloudTopic("/camera/depth_registered/points");
 
 
   // try to load board recognition

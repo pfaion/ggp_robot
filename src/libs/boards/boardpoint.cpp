@@ -12,5 +12,5 @@ std::ostream& operator<<(std::ostream& out, const BoardPoint& p) {
 
 BoardPoint::operator cv::Point3f() { return cv::Point3f(x,y,z); }
 BoardPoint::operator cv::Point2f() { return cv::Point2f(x,y); }
-BoardPoint::operator Eigen::Vector3d() { return Eigen::Vector3d(x,y,z); }
+BoardPoint::operator Eigen::Vector3f() { return Eigen::Vector3f(x,y,z); }
 

@@ -20,7 +20,7 @@ struct BoardPoint{
 
     operator cv::Point3f();
     operator cv::Point2f();
-    operator Eigen::Vector3d();
+    operator Eigen::Vector3f();
 };
 
 

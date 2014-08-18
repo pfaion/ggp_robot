@@ -63,6 +63,10 @@ void ChessStateRec1::setCamera(boost::shared_ptr<Camera>& cp) {
 
 bool ChessStateRec1::start() {
   PRINT("[SREC] Starting...");
+  cam->listenToCloudStream(false);
+  cam->setCloudTopic("/camera/depth/points");
+  cam->listenToCloudStream(true);
+  cam->listenToImageStream(false);
 
   KeyListener keyboard;
   keyboard.start();
@@ -81,10 +85,10 @@ bool ChessStateRec1::start() {
   while(ros::ok()) {
     PRINT("[SREC] Fetching cloud.");
     pcl::PCLPointCloud2::ConstPtr cloud = cam->getPclCloud();
-    pcl::PointCloud<pcl::PointXYZ>::Ptr pc(new pcl::PointCloud<pcl::PointXYZ>());
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc(new pcl::PointCloud<pcl::PointXYZRGB>());
     pcl::fromPCLPointCloud2(*cloud, *pc);
 
-    pcl::PointCloud<pcl::PointXYZ>::Ptr filtered(new pcl::PointCloud<pcl::PointXYZ>());
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr filtered(new pcl::PointCloud<pcl::PointXYZRGB>());
 
 
     bool change = false;
@@ -97,9 +101,10 @@ bool ChessStateRec1::start() {
     for(type it=board->regions.begin(); it != board->regions.end(); ++it) {
 
       std::string name = it->first;
-      if(name != "marker") cloudId++;
+      if(name == "marker") continue;
+      cloudId++;
 
-      pcl::CropBox<pcl::PointXYZ> crop;
+      pcl::CropBox<pcl::PointXYZRGB> crop;
       std::vector<cv::Point3f> reg = board->getRotatedRegion(name);
       cv::Point3f min = reg[0];
       cv::Point3f max = reg[0];
@@ -116,7 +121,7 @@ bool ChessStateRec1::start() {
       float enlarge = 0;
       min.x -= (max.x-min.x)*enlarge;
       min.y -= (max.y-min.y)*enlarge;
-      min.z += (max.z-min.z)*0.3;
+      min.z += (max.z-min.z)*0.1;
       max.x += (max.x-min.x)*enlarge;
       max.y += (max.y-min.y)*enlarge;
       max.z += (max.z-min.z)*enlarge;

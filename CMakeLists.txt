@@ -59,6 +59,7 @@ add_library(ggp_robot_libs
   src/libs/cameras/xtion.cpp
   src/libs/boardRec/board_recognition.cpp
   src/libs/boardRec/chessboardrec1.cpp
+  src/libs/boardRec/chessboardrec2.cpp
   src/libs/stateRec/state_recognition.cpp
   src/libs/stateRec/chessstaterec1.cpp
 

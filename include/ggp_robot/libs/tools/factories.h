@@ -18,9 +18,10 @@
 
   allows to call
 
-      Base* b = Factory<Base>::create("myA");
+  boost::shared_ptr<Base> b = Factory<Base>::create("myA");
 
-  which returns a Base-Pointer to an instance of the derived class DerivedA;
+  which returns a boost shared pointer of type Base to an instance of the
+  derived class DerivedA
 ---------------------------------------------------------------------------- */
 
 #include <ggp_robot/libs/boards/chessboard1.h>
@@ -31,6 +32,9 @@ REGISTER_TYPE(Camera, Xtion, "xtion");
 
 #include <ggp_robot/libs/boardRec/chessboardrec1.h>
 REGISTER_TYPE(BoardRecognition, ChessBoardRec1, "chessboardrec1");
+
+#include <ggp_robot/libs/boardRec/chessboardrec2.h>
+REGISTER_TYPE(BoardRecognition, ChessBoardRec2, "chessboardrec2");
 
 #include <ggp_robot/libs/stateRec/chessstaterec1.h>
 REGISTER_TYPE(StateRecognition, ChessStateRec1, "chessstaterec1");
