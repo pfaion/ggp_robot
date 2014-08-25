@@ -28,7 +28,7 @@ class KeyListener {
 };
 
 // init with null-char
-KeyListener::KeyListener()
+inline KeyListener::KeyListener()
 : c(0)
 {
   // save current terminal options
@@ -42,17 +42,17 @@ KeyListener::KeyListener()
 }
 
 // if destructed: reset terminal options
-KeyListener::~KeyListener() {
+inline KeyListener::~KeyListener() {
   tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
 }
 
 // start a new thread and execute the doWork function
-void KeyListener::start() {
+inline void KeyListener::start() {
   t = boost::thread(boost::bind(&KeyListener::doWork, this));
 }
 
 // get the stored char thread-safe
-char KeyListener::getChar() {
+inline char KeyListener::getChar() {
   mtx.lock();
   char copy = c;
   // reset the store to the null-char
@@ -63,7 +63,7 @@ char KeyListener::getChar() {
 
 
 // activate special terminal options, read char and reset options
-int KeyListener::getch() {
+inline int KeyListener::getch() {
   int ch;
   tcsetattr(STDIN_FILENO, TCSANOW, &newt);
   ch = getchar();
@@ -72,7 +72,7 @@ int KeyListener::getch() {
 }
 
 // thread-function, looping and waiting for pressed keys
-void KeyListener::doWork (){
+inline void KeyListener::doWork (){
   while(1) {
     char copy;
     copy = getch();

@@ -32,9 +32,6 @@ ChessBoard1::ChessBoard1()
       this->regions[d].push_back(p(x+1,y+1));
       this->regions[d].push_back(p(x,y+1));
       this->regions[d].push_back(p(x,y,2));
-
-      // TODO dirty hack! make function for creating cv or eigen points
-      // specifically
     }
   }
 
@@ -57,6 +54,17 @@ ChessBoard1::ChessBoard1()
   this->corners.push_back(p(2,3));
   this->corners.push_back(p(1,3));
 
+  // boundingBox
+  this->boundingBox = std::vector<cv::Point3f>();
+  this->boundingBox.push_back(p(0,0,-0.5));
+  this->boundingBox.push_back(p(5,0,-0.5));
+  this->boundingBox.push_back(p(5,4,-0.5));
+  this->boundingBox.push_back(p(0,4,-0.5));
+  this->boundingBox.push_back(p(0,0,3));
+  this->boundingBox.push_back(p(5,0,3));
+  this->boundingBox.push_back(p(5,4,3));
+  this->boundingBox.push_back(p(0,4,3));
+
   // initialize rotation center
   this->center = p(2,2);
 
@@ -69,6 +77,26 @@ ChessBoard1::ChessBoard1()
 
 BoardPoint ChessBoard1::p(float x, float y, float z) {
   return BoardPoint(x * FIELD_SIZE, y * FIELD_SIZE, z * FIELD_SIZE);
+}
+
+std::vector<cv::Point3f> ChessBoard1::getRotatedBoundingBox() {
+  return rotatePoints(boundingBox);
+}
+
+std::vector<cv::Point3f> ChessBoard1::rotatePoints(std::vector<cv::Point3f> v) {
+  return rotatePoints(v, this->angle);
+}
+
+std::vector<cv::Point3f> ChessBoard1::rotatePoints(std::vector<cv::Point3f> v, float angle) {
+  std::vector<cv::Point3f> rotRegion;
+  typedef std::vector<cv::Point3f>::iterator type;
+  for(type it = v.begin(); it != v.end(); ++it) {
+    cv::Point3f p = (*it);
+    float rotX = cos(angle) * (p.x - center.x) - sin(angle) * (p.y - center.y) + center.x;
+    float rotY = sin(angle) * (p.x - center.x) + cos(angle) * (p.y - center.y) + center.y;
+    rotRegion.push_back(cv::Point3f(rotX, rotY, p.z));
+  }
+  return rotRegion;
 }
 
 ChessBoard1::RegionLayout ChessBoard1::getRotatedLayout(float angle) {
@@ -86,15 +114,7 @@ ChessBoard1::RegionLayout ChessBoard1::getRotatedLayout() {
 
 std::vector<cv::Point3f> ChessBoard1::getRotatedRegion(std::string name, float angle) {
   std::vector<cv::Point3f> v = regions[name];
-  std::vector<cv::Point3f> rotRegion;
-  typedef std::vector<cv::Point3f>::iterator type;
-  for(type it = v.begin(); it != v.end(); ++it) {
-    cv::Point3f p = (*it);
-    float rotX = cos(angle) * (p.x - center.x) - sin(angle) * (p.y - center.y) + center.x;
-    float rotY = sin(angle) * (p.x - center.x) + cos(angle) * (p.y - center.y) + center.y;
-    rotRegion.push_back(cv::Point3f(rotX, rotY, p.z));
-  }
-  return rotRegion;
+  return rotatePoints(v, angle);
 }
 
 std::vector<cv::Point3f> ChessBoard1::getRotatedRegion(std::string name) {

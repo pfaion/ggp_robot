@@ -46,7 +46,8 @@ VisionController::VisionController()
   private_nh_.param("boardclass", boardClass, std::string("chessboard1"));
   private_nh_.param("cameraclass", cameraClass, std::string("xtion"));
   private_nh_.param("boardrecognitionclass", boardRecognitionClass, std::string("chessboardrec2"));
-  private_nh_.param("staterecognitionclass", stateRecognitionClass, std::string("chessstaterec1"));
+  private_nh_.param("staterecognitionclass", stateRecognitionClass,
+      std::string("chessstaterec2"));
 
   // try to load board
   board = Factory<PlanarBoard>::create(boardClass);
@@ -103,22 +104,23 @@ VisionController::VisionController()
 void VisionController::spin() {
   PRINT("[VC] Starting Vision Controller...");
 
+  brec->setBoard(board);
+  brec->setCamera(cam);
+  srec->setBoard(board);
+  srec->setCamera(cam);
+
   // loop as long as the vision controller is running
   while(ros::ok()) {
     PRINT("[VC] Recognizing Board...");
     PRINT("[VC] Set up board recognition.");
     
-    brec->setBoard(board);
-    brec->setCamera(cam);
+    cam->listenToImageStream(true);
+    cam->listenToCloudStream(true);
     brec->start();
-
-
 
     PRINT("[VC] Recognizing State...");
     cam->listenToImageStream(false);
     cam->listenToCloudStream(true);
-    srec->setBoard(board);
-    srec->setCamera(cam);
 
     bool end = srec->start();
     if(end) break;

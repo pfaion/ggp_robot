@@ -17,6 +17,8 @@ class ChessBoard1 : public PlanarBoard {
     const float FIELD_SIZE;
 
     std::vector<cv::Point3f> corners;
+    std::vector<cv::Point3f> boundingBox;
+    std::vector<cv::Point3f> getRotatedBoundingBox();
 
     cv::Point3f center;
 
@@ -24,6 +26,8 @@ class ChessBoard1 : public PlanarBoard {
     virtual BoardPoint p(float x, float y, float z=0.0);
 
     float angle;
+    std::vector<cv::Point3f> rotatePoints(std::vector<cv::Point3f> v);
+    std::vector<cv::Point3f> rotatePoints(std::vector<cv::Point3f> v, float angle);
     RegionLayout getRotatedLayout();
     RegionLayout getRotatedLayout(float angle);
     std::vector<cv::Point3f> getRotatedRegion(std::string name);

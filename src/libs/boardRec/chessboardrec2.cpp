@@ -68,7 +68,7 @@ void ChessBoardRec2::start() {
 
   
   // initialize buffer for stability analysis 
-  int buffer_size = 10;
+  int buffer_size = 6;
   boost::circular_buffer<Eigen::Vector3f> buffer(buffer_size);
   bool done = false;
 
@@ -177,11 +177,19 @@ void ChessBoardRec2::start() {
     cross8 = worldCornersEig[8] + cross8;
     worldCornersEig.push_back(cross8);
 
+    bool checkNaN = false;
     for(int i=0; i<13; ++i) {
       float x = worldCornersEig[i][0];
       float y = worldCornersEig[i][1];
       float z = worldCornersEig[i][2];
+      // self-comparison will be false iff variable is NaN
+      // IMPORTANT: this will not work, if compiler-option -ffast-math is enabled
+      if(x != x || y != y || z != z) checkNaN = true;
       worldCorners.push_back(cv::Point3f(x,y,z));
+    }
+    if(checkNaN) {
+      PRINT(red, "[BREC] NaNs detected. Skip sample.");
+      continue;
     }
 
     std::vector<Eigen::Vector3f> boardCorners;
@@ -383,7 +391,7 @@ void ChessBoardRec2::start() {
       // more samples lead to greater variability (mean might be independent...
       // test this)
       // also: magic number. avoid.
-      if(stdNorm < 0.05 && diffNorm < 0.005) {
+      if(stdNorm < 0.3 && diffNorm < 0.1) {
         PRINT(magenta, "[BREC] Stable solution found! Stopping here!");
         done = true;
       }

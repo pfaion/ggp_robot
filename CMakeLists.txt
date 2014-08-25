@@ -62,6 +62,8 @@ add_library(ggp_robot_libs
   src/libs/boardRec/chessboardrec2.cpp
   src/libs/stateRec/state_recognition.cpp
   src/libs/stateRec/chessstaterec1.cpp
+  src/libs/stateRec/chessstaterec2.cpp
+  src/libs/stateRec/corrgroup.cpp
 
   # header-only libraries and templates 
   include/ggp_robot/libs/tools/factories.h
