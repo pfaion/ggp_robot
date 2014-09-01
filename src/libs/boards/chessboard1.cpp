@@ -79,6 +79,21 @@ BoardPoint ChessBoard1::p(float x, float y, float z) {
   return BoardPoint(x * FIELD_SIZE, y * FIELD_SIZE, z * FIELD_SIZE);
 }
 
+BoardPoint ChessBoard1::transp(float x, float y, float z) {
+  float px = x * FIELD_SIZE;
+  float py = y * FIELD_SIZE;
+  float pz = z * FIELD_SIZE;
+  float rotX = cos(angle) * (px - center.x) - sin(angle) * (py - center.y) + center.x;
+  float rotY = sin(angle) * (px - center.x) + cos(angle) * (py - center.y) + center.y;
+  Eigen::Vector3f v(rotX, rotY, pz);
+  Eigen::Vector3f transv = transform * v;
+  BoardPoint p(0,0,0);
+  p.x = transv(0);
+  p.y = transv(1);
+  p.z = transv(2);
+  return p;
+}
+
 std::vector<cv::Point3f> ChessBoard1::getRotatedBoundingBox() {
   return rotatePoints(boundingBox);
 }

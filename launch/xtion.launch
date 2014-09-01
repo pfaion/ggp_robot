@@ -6,5 +6,11 @@
     <arg name="depth_frame_id" value="$(arg camera)_depth_optical_frame" />
     <arg name="depth_registration" value="true" />
     <arg name="color_depth_synchronization" value="true" />
+    <!--
+    <arg name="rgb_camera_info_url"
+        value="file:///home/pfaion/catkin_ws/src/ggp_robot/rgb.yaml" />
+    <arg name="depth_camera_info_url"
+        value="file:///home/pfaion/catkin_ws/src/ggp_robot/depth.yaml" />
+        -->
   </include>
 </launch>

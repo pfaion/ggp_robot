@@ -42,6 +42,9 @@ REGISTER_TYPE(StateRecognition, ChessStateRec1, "chessstaterec1");
 #include <ggp_robot/libs/stateRec/chessstaterec2.h>
 REGISTER_TYPE(StateRecognition, ChessStateRec2, "chessstaterec2");
 
+#include <ggp_robot/libs/stateRec/chessstaterec3.h>
+REGISTER_TYPE(StateRecognition, ChessStateRec3, "chessstaterec3");
+
 #include <ggp_robot/libs/stateRec/corrgroup.h>
 REGISTER_TYPE(StateRecognition, CorrGroup, "corrgroup");
 

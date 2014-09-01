@@ -47,7 +47,7 @@ VisionController::VisionController()
   private_nh_.param("cameraclass", cameraClass, std::string("xtion"));
   private_nh_.param("boardrecognitionclass", boardRecognitionClass, std::string("chessboardrec2"));
   private_nh_.param("staterecognitionclass", stateRecognitionClass,
-      std::string("chessstaterec2"));
+      std::string("chessstaterec3"));
 
   // try to load board
   board = Factory<PlanarBoard>::create(boardClass);
@@ -69,6 +69,7 @@ VisionController::VisionController()
   PRINT(green, "[VC] Successfully created camera of type '"
     << cameraClass << "'");
   cam->setImageTopic("/camera/rgb/image_raw");
+  //cam->setImageTopic("/camera/ir/image");
   //cam->setCloudTopic("/camera/depth/points");
   cam->setCloudTopic("/camera/depth_registered/points");
 

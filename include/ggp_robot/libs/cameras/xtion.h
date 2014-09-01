@@ -7,6 +7,7 @@
 class Xtion : public Camera {
   public:
     virtual cv::Matx33d getCameraMatrix();  
+    virtual std::vector<double> getDistortionCoefficients();
 
 };
 

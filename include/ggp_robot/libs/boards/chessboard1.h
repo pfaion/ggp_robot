@@ -24,6 +24,7 @@ class ChessBoard1 : public PlanarBoard {
 
     ChessBoard1();
     virtual BoardPoint p(float x, float y, float z=0.0);
+    BoardPoint transp(float x, float y, float z=0.0);
 
     float angle;
     std::vector<cv::Point3f> rotatePoints(std::vector<cv::Point3f> v);
