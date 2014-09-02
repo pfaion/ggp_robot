@@ -31,7 +31,6 @@ ChessBoard1::ChessBoard1()
       this->regions[d].push_back(p(x+1,y));
       this->regions[d].push_back(p(x+1,y+1));
       this->regions[d].push_back(p(x,y+1));
-      this->regions[d].push_back(p(x,y,2));
     }
   }
 

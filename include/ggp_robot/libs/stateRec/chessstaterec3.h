@@ -15,6 +15,8 @@ class ChessStateRec3 : public StateRecognition {
     virtual void setCamera(boost::shared_ptr<Camera>& cp);
     virtual bool start(); 
 
+    typedef pcl::PointXYZRGB PointType;
+
   private:
     // this recognizer is only supposed to work for board type chessboard1
     boost::shared_ptr<ChessBoard1>board;
@@ -26,16 +28,20 @@ class ChessStateRec3 : public StateRecognition {
     int ptTest(float xa, float ya, float xb, float yb, float xc, float yc);
 
     struct PlaneTools {
+      float nx, ny, nz, d;
+      PlaneTools(){};
       PlaneTools(float nx, float ny, float nz, float d);
       Eigen::Vector3f project(Eigen::Vector3f pt);
-      float nx, ny, nz, d;
+      float distance(Eigen::Vector3f pt);
     };
     struct Cluster {
       Eigen::Vector3f avgpt;
       Eigen::Vector3f base;
       Eigen::Vector3f newBase;
-      std::vector<int> indices;
-      void dataFromIndices(pcl::PointCloud<pcl::PointXYZRGB> cloud);
+      pcl::PointIndices indices;
+      PlaneTools plane;
+      pcl::PointCloud<PointType>::Ptr refcloud;
+      void analyse();
     };
 
 };
