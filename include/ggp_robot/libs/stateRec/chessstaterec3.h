@@ -21,10 +21,21 @@ class ChessStateRec3 : public StateRecognition {
     boost::shared_ptr<Camera> cam;
 
     pcl::visualization::PCLVisualizer viewer;
+
+    bool pointInPolygon(Eigen::Vector3f pt, std::vector<cv::Point3f> poly);
+    int ptTest(float xa, float ya, float xb, float yb, float xc, float yc);
+
     struct PlaneTools {
       PlaneTools(float nx, float ny, float nz, float d);
       Eigen::Vector3f project(Eigen::Vector3f pt);
       float nx, ny, nz, d;
+    };
+    struct Cluster {
+      Eigen::Vector3f avgpt;
+      Eigen::Vector3f base;
+      Eigen::Vector3f newBase;
+      std::vector<int> indices;
+      void dataFromIndices(pcl::PointCloud<pcl::PointXYZRGB> cloud);
     };
 
 };

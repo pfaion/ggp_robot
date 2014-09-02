@@ -85,6 +85,26 @@ bool ChessStateRec3::start() {
   // loop over the incoming pointclouds until keyboard interruption
   while(ros::ok()) {
 
+    
+
+
+
+    // init cluster-field-assignment with empty lists
+    std::map<std::string, std::vector<Cluster> > field_cluster_map;
+    std::map<std::string, std::vector<cv::Point3f> > board_layout = board->getRotatedLayout();
+    for(std::map<std::string, std::vector<cv::Point3f> >::iterator it = board_layout.begin();
+        it != board_layout.end();
+        ++it){
+      field_cluster_map[it->first] = std::vector<Cluster>();
+    }
+
+
+
+
+
+
+
+
     // cleanup the viewer
     viewer.removeAllPointClouds();
 
@@ -265,6 +285,12 @@ bool ChessStateRec3::start() {
       // =======================================
       // b) optimize base point for known radius
       // =======================================
+      //
+      // Since the camera detects only one side of the cylindrical pieces,
+      // the calculated center-point will be shifted to the camera. With the
+      // knowledge of the real radius of the pieces, it is possible to project
+      // the base point away from the camera, such that it resembles the real
+      // base more accurately.
 
       float radius = 0.0175;
       
@@ -307,9 +333,22 @@ bool ChessStateRec3::start() {
 
 
 
+      for(std::map<std::string, std::vector<cv::Point3f> >::iterator it_reg = board_layout.begin();
+          it_reg != board_layout.end();
+          ++it_reg){
+        if(pointInPolygon(board->transform.inverse() * newBase, it_reg->second)) {
+          Cluster c;
+          c.base = newBase;
+          c.indices = it->indices;
+          field_cluster_map[it_reg->first].push_back(c);
+        }
+      }
+
+
+
 
       // ======================================================================
-      // VISULIZATION
+      // VISUALIZATION
       // ======================================================================
 
       pcl::PointCloud<PointType>::Ptr base_cloud (new pcl::PointCloud<PointType>);
@@ -338,6 +377,29 @@ bool ChessStateRec3::start() {
       viewer.addPointCloud<PointType>(cloud_cluster, tmpcol, "tmp"+cl_idstr); 
       cl_id++;
     }
+
+
+    // merge all clusters in a region
+    for(std::map<std::string, std::vector<Cluster> >::iterator it_reg = field_cluster_map.begin();
+        it_reg != field_cluster_map.end();
+        ++it_reg){
+
+      Cluster merged;
+
+      std::vector<int> indices();
+
+      for(std::vector<Cluster>::iterator it_cl = it_reg->second.begin();
+          it_cl != it_reg->second.end();
+          ++it_cl) {
+        
+        std::vector<int> newInd();
+        newInd.reserve(indices.size() + it_cl->indices.size());
+        newInd.insert(newInd.end(). indices.begin(), indices.end());
+        newInd.insert(newInd.end(). it_cl->indices.begin(), it_cl->indices.end());
+
+      }
+    }
+
 
 
     // show grid
@@ -374,4 +436,40 @@ bool ChessStateRec3::start() {
 
 
   }
+}
+
+bool ChessStateRec3::pointInPolygon(Eigen::Vector3f pt, std::vector<cv::Point3f> poly) {
+  int t = -1;
+  typedef std::vector<cv::Point3f>::iterator type;
+  for(type it = poly.begin(); (it+1) != poly.end(); it++) {
+    t *= ptTest(pt(0), pt(1), it->x, it->y, (it+1)->x, (it+1)->y);  
+  }
+  return t == 1;
+}
+
+int ChessStateRec3::ptTest(float xa, float ya, float xb, float yb, float xc, float yc) {
+  if(ya == yb && yb == yc) {
+    if( (xb <= xa && xa <= xc) || (xc <= xa && xa <= xb) )
+      return 0;
+    else
+      return 1;
+  }
+  if(yb > yc) {
+    float tmpx = xb;
+    float tmpy = yb;
+    xb = xc;
+    yb = yc;
+    xc = tmpx;
+    yc = tmpy;
+  }
+  if(ya == yb && xa == xb)
+    return 0;
+  if(ya <= yb || ya > yc)
+    return 1;
+  float delta = (xb - xa)*(yc - ya) - (yb - ya)*(xc - xa);
+  if(delta > 0)
+    return -1;
+  if(delta < 0)
+    return 1;
+  return 0;
 }

@@ -142,6 +142,7 @@ ChessBoard1::RegionLayout ChessBoard1::getRotatedTransformedLayout() {
   for(type it = regions.begin(); it != regions.end(); ++it) {
     newLayout[it->first] = getRotatedTransformedRegion(it->first);
   }
+  return newLayout;
 }
 
 std::vector<cv::Point3f> ChessBoard1::getRotatedTransformedRegion(std::string name) {
