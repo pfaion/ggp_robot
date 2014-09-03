@@ -13,7 +13,7 @@ class ChessStateRec3 : public StateRecognition {
     ChessStateRec3();
     virtual void setBoard(boost::shared_ptr<PlanarBoard>& bp);
     virtual void setCamera(boost::shared_ptr<Camera>& cp);
-    virtual bool start(); 
+    virtual bool start(ggp_robot::GetState::Request &req, ggp_robot::GetState::Response &res); 
 
     typedef pcl::PointXYZRGB PointType;
 

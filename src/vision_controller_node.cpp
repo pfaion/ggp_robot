@@ -1,4 +1,6 @@
 // vision_controller_node.cpp //
+#include <ggp_robot/vision_controller_node.h>
+
 #include <iostream>
 #include <string>
 #include <stdexcept>
@@ -11,22 +13,9 @@
 #include <ggp_robot/libs/tools/factories.h>
 #include <ggp_robot/libs/tools/debug.h>
 #include <ggp_robot/libs/tools/keylistener.h>
+#include <ggp_robot/Calibrate.h>
+#include <ggp_robot/GetState.h>
 
-class VisionController {
-
-  public:
-    VisionController();
-    void spin();
-
-  private:
-    ros::NodeHandle nh;
-    ros::NodeHandle private_nh;
-    boost::shared_ptr<PlanarBoard> board;
-    boost::shared_ptr<Camera> cam;
-    boost::shared_ptr<BoardRecognition> brec;
-    boost::shared_ptr<StateRecognition> srec;
-
-};   
 
 // Vision Controller Initialization
 VisionController::VisionController()
@@ -69,8 +58,6 @@ VisionController::VisionController()
   PRINT(green, "[VC] Successfully created camera of type '"
     << cameraClass << "'");
   cam->setImageTopic("/camera/rgb/image_raw");
-  //cam->setImageTopic("/camera/ir/image");
-  //cam->setCloudTopic("/camera/depth/points");
   cam->setCloudTopic("/camera/depth_registered/points");
 
 
@@ -110,25 +97,60 @@ void VisionController::spin() {
   srec->setBoard(board);
   srec->setCamera(cam);
 
-  // loop as long as the vision controller is running
+  ros::ServiceServer calib_service = nh.advertiseService("ggp_robot/calibrate", &VisionController::calibrate, this);
+  ros::ServiceClient calib_client = nh.serviceClient<ggp_robot::Calibrate>("ggp_robot/calibrate");
+  ros::ServiceServer state_service = nh.advertiseService("ggp_robot/getState", &VisionController::getState, this);
+  ros::ServiceClient state_client = nh.serviceClient<ggp_robot::GetState>("ggp_robot/getState");
+
+  ros::AsyncSpinner spinner(0);
+  spinner.start();
+
+  KeyListener keyboard;
+  keyboard.start();
+
   while(ros::ok()) {
-    PRINT("[VC] Recognizing Board...");
-    PRINT("[VC] Set up board recognition.");
-    
-    cam->listenToImageStream(true);
-    cam->listenToCloudStream(true);
-    brec->start();
 
-    PRINT("[VC] Recognizing State...");
-    cam->listenToImageStream(false);
-    cam->listenToCloudStream(true);
+    char c = keyboard.getChar();
+    if(c == 'q') {
+      PRINT(blue, "[VC][USER] Quit!");
+      break;
+    } else if(c == 'c') {
+      PRINT(blue, "[VC][USER] Calibrate!");
+      ggp_robot::Calibrate srv;
+      if(!calib_client.call(srv)) {
+        PRINT(red, "[VC] Error calling calibration service!");
+      }
+    } else if(c == 's') {
+      PRINT(blue, "[VC][USER] Get state!");
+      ggp_robot::GetState srv;
+      if(!state_client.call(srv)) {
+        PRINT(red, "[VC] Error calling state service!");
+      }
+    }
 
-    bool end = srec->start();
-    if(end) break;
   }
+  PRINT("[VC] Shutting down.");
+  spinner.stop();
+}
+
+bool VisionController::calibrate(ggp_robot::Calibrate::Request &req,
+                            ggp_robot::Calibrate::Response &res) {
+  boost::lock_guard<boost::mutex> guard(mtx);
+  PRINT("[VC] Calibrate service called.");
+  brec->start();
+  PRINT("[VC] Calibrate service finished.");
+  return true;
 }
 
 
+bool VisionController::getState(ggp_robot::GetState::Request &req,
+                            ggp_robot::GetState::Response &res) {
+  boost::lock_guard<boost::mutex> guard(mtx);
+  PRINT("[VC] State service called.");
+  srec->start(req,res);
+  PRINT("[VC] State service finished.");
+  return true;
+}
   
 
 

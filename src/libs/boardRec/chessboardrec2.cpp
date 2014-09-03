@@ -65,6 +65,8 @@ void ChessBoardRec2::setCamera(boost::shared_ptr<Camera>& cp) {
 
 void ChessBoardRec2::start() {
   PRINT("[BREC] Starting...");
+  cam->listenToImageStream(true);
+  cam->listenToCloudStream(true);
 
   
   // initialize buffer for stability analysis 
@@ -426,5 +428,8 @@ void ChessBoardRec2::start() {
   PRINT("[BREC] Initialization done. Setting board parameters...");
   board->angle = angle;
   board->transform = transform;
+
+  cam->listenToImageStream(false);
+  cam->listenToCloudStream(false);
   PRINT("[BREC] Stopping...");
 }

@@ -1,0 +1,5 @@
+---
+string[] names
+int64[] states
+geometry_msgs/Point32[] grabPoints
+geometry_msgs/Point32 normalVector

@@ -19,20 +19,34 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   cv_bridge
   visualization_msgs
+  message_generation
 )
 
+add_service_files(
+    FILES
+    Calibrate.srv
+    GetState.srv
+)
+
+generate_messages(
+    DEPENDENCIES
+    std_msgs
+    geometry_msgs
+)
 
 catkin_package(
   CATKIN_DEPENDS
     pcl_conversions
     pcl_ros
     sensor_msgs
+    geometry_msgs
     cv_bridge
     roscpp
     rospy
     std_msgs
     image_transport
     visualization_msgs
+    message_runtime
 )
 
 
@@ -61,8 +75,8 @@ add_library(ggp_robot_libs
   src/libs/boardRec/chessboardrec1.cpp
   src/libs/boardRec/chessboardrec2.cpp
   src/libs/stateRec/state_recognition.cpp
-  src/libs/stateRec/chessstaterec1.cpp
-  src/libs/stateRec/chessstaterec2.cpp
+#src/libs/stateRec/chessstaterec1.cpp
+#src/libs/stateRec/chessstaterec2.cpp
   src/libs/stateRec/chessstaterec3.cpp
   src/libs/stateRec/corrgroup.cpp
 
