@@ -7,6 +7,10 @@
 #include <unistd.h>
 #include <ros/ros.h>
 #include <boost/shared_ptr.hpp>
+#include <opencv2/core/eigen.hpp>
+#include <opencv2/calib3d/calib3d.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 #include <ggp_robot/libs/boards/board.h>
 #include <ggp_robot/libs/boardRec/board_recognition.h>
 #include <ggp_robot/libs/stateRec/state_recognition.h>
@@ -102,6 +106,7 @@ void VisionController::spin() {
   ros::ServiceServer state_service = nh.advertiseService("ggp_robot/getState", &VisionController::getState, this);
   ros::ServiceClient state_client = nh.serviceClient<ggp_robot::GetState>("ggp_robot/getState");
 
+  // listen for service calls asynchroneously
   ros::AsyncSpinner spinner(0);
   spinner.start();
 
@@ -109,6 +114,8 @@ void VisionController::spin() {
   keyboard.start();
 
   while(ros::ok()) {
+    srec->viewer.spinOnce();
+    cv::waitKey(1);
 
     char c = keyboard.getChar();
     if(c == 'q') {

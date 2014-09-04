@@ -41,6 +41,12 @@ ChessBoard1::ChessBoard1()
   this->regions["marker"].push_back(p(5,1));
   this->regions["marker"].push_back(p(4,1));
 
+  markerRegion = std::vector<cv::Point3f>();
+  markerRegion.push_back(p(4,0));
+  markerRegion.push_back(p(5,0));
+  markerRegion.push_back(p(5,1));
+  markerRegion.push_back(p(4,1));
+
 
   // initialize corners for detection
   this->corners.push_back(p(3,1));
@@ -135,6 +141,19 @@ std::vector<cv::Point3f> ChessBoard1::getRotatedRegion(std::string name) {
   return getRotatedRegion(name, this->angle);
 }
 
+std::vector<cv::Point3f> ChessBoard1::rotateTransformPoints(std::vector<cv::Point3f> v) {
+  std::vector<cv::Point3f> rot = rotatePoints(v, this->angle);
+  std::vector<cv::Point3f> newPoints;
+  typedef std::vector<cv::Point3f>::iterator type;
+  for(type it = rot.begin(); it != rot.end(); ++it) {
+    Eigen::Vector3f p((*it).x, (*it).y, (*it).z);
+    Eigen::Vector3f rotP = transform * p;
+    newPoints.push_back(cv::Point3f(rotP[0], rotP[1], rotP[2]));
+  }
+  return newPoints;
+}
+
+
 ChessBoard1::RegionLayout ChessBoard1::getRotatedTransformedLayout() {
   RegionLayout newLayout;
   typedef RegionLayout::iterator type;
@@ -145,14 +164,9 @@ ChessBoard1::RegionLayout ChessBoard1::getRotatedTransformedLayout() {
 }
 
 std::vector<cv::Point3f> ChessBoard1::getRotatedTransformedRegion(std::string name) {
-  std::vector<cv::Point3f> v = getRotatedRegion(name);
+  std::vector<cv::Point3f> v = regions[name];
   std::vector<cv::Point3f> newRegion;
-  typedef std::vector<cv::Point3f>::iterator type;
-  for(type it = v.begin(); it != v.end(); ++it) {
-    Eigen::Vector3f p((*it).x, (*it).y, (*it).z);
-    Eigen::Vector3f rotP = transform * p;
-    newRegion.push_back(cv::Point3f(rotP[0], rotP[1], rotP[2]));
-  }
+  newRegion = rotateTransformPoints(v);
   return newRegion;
 }
   

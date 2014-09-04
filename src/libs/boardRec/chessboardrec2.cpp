@@ -22,29 +22,6 @@
 #include <ggp_robot/libs/boards/chessboard1.h>
 #include <ggp_robot/libs/tools/debug.h>
 
-std::string type2str(int type) {
-  std::string r;
-
-  uchar depth = type & CV_MAT_DEPTH_MASK;
-  uchar chans = 1 + (type >> CV_CN_SHIFT);
-
-  switch ( depth ) {
-    case CV_8U:  r = "8U"; break;
-    case CV_8S:  r = "8S"; break;
-    case CV_16U: r = "16U"; break;
-    case CV_16S: r = "16S"; break;
-    case CV_32S: r = "32S"; break;
-    case CV_32F: r = "32F"; break;
-    case CV_64F: r = "64F"; break;
-    default:     r = "User"; break;
-  }
-
-  r += "C";
-  r += (chans+'0');
-
-  return r;
-}
-
 ChessBoardRec2::ChessBoardRec2() {
   PRINT("[BREC] Recognizer initializing...");
 }
@@ -102,7 +79,7 @@ void ChessBoardRec2::start() {
       continue;
     }
     
-    PRINT(green, "[BREC] Corners successfully detected!");
+    PRINT("[BREC] Corners successfully detected!");
 
     // Draw corners on image
     cv::Mat img_corners = cimg->image.clone();
@@ -118,6 +95,9 @@ void ChessBoardRec2::start() {
     // note: corner-points are float, so we need a bilinear interpolation
     std::vector<cv::Point3f> worldCorners;
     std::vector<Eigen::Vector3f> worldCornersEig;
+    // since data comes from pointcloud, there can be NaNs
+    // in that case, the sample will be skipped... does not happen too often
+    bool checkNaN = false;
     // transform every corner
     for(int i=0; i<corners.rows; ++i) {
       // keep in mind:
@@ -155,13 +135,55 @@ void ChessBoardRec2::start() {
       Eigen::Vector3f veig(out0, out1, out2);
       worldCornersEig.push_back(veig);
 
+      // self-comparison will be false if and only if variable is NaN
+      // IMPORTANT: this will not work, if compiler-option -ffast-math is enabled
+      if(out0 != out0 || out1 != out1 || out2 != out2) checkNaN = true;
     }
 
+    // if NaNs detected, skip sample
+    if(checkNaN) {
+      PRINT("[BREC] NaNs detected. Skip sample.");
+      continue;
+    }
+
+
+    // all vectors are now in a plane, due to allowed skewing, there are
+    // infinitely many affine transformations for this
+    // --> we have to artificially add additional points to the dataset
+    // idea: 
+    // calculate cross-products of vectors between base points
+    // --> these points are not in the plane anymore
+
+    // these are the corresponding points from the board
+    std::vector<Eigen::Vector3f> boardCorners;
+    // 9 corners
+    boardCorners.push_back(board->p(3,1,0));
+    boardCorners.push_back(board->p(2,1,0));
+    boardCorners.push_back(board->p(1,1,0));
+    boardCorners.push_back(board->p(3,2,0));
+    boardCorners.push_back(board->p(2,2,0));
+    boardCorners.push_back(board->p(1,2,0));
+    boardCorners.push_back(board->p(3,3,0));
+    boardCorners.push_back(board->p(2,3,0));
+    boardCorners.push_back(board->p(1,3,0));
+    // 4 artificial points
+    boardCorners.push_back(board->p(3,1,2));
+    boardCorners.push_back(board->p(1,1,2));
+    boardCorners.push_back(board->p(3,3,2));
+    boardCorners.push_back(board->p(1,3,2));
+
+    // now get the artificial points in world coordiantes 
+    // note: we have 9 cornerpoints from 0 to 8 in arrangement:
+    // 8 7 6
+    // 5 4 3
+    // 2 1 0
+
+    // vectors in plane
     Eigen::Vector3f b02 = worldCornersEig[2] - worldCornersEig[0];
     Eigen::Vector3f b06 = worldCornersEig[6] - worldCornersEig[0];
     Eigen::Vector3f b28 = worldCornersEig[8] - worldCornersEig[2];
     Eigen::Vector3f b68 = worldCornersEig[8] - worldCornersEig[6];
-    
+    // cross products of vectors and find new points
     Eigen::Vector3f cross0 = b06.cross(b02);
     cross0 *= 0.5*(b06.norm()+b02.norm())/cross0.norm();
     cross0 = worldCornersEig[0] + cross0;
@@ -179,118 +201,86 @@ void ChessBoardRec2::start() {
     cross8 = worldCornersEig[8] + cross8;
     worldCornersEig.push_back(cross8);
 
-    bool checkNaN = false;
+    // convert to needed cv format
     for(int i=0; i<13; ++i) {
       float x = worldCornersEig[i][0];
       float y = worldCornersEig[i][1];
       float z = worldCornersEig[i][2];
-      // self-comparison will be false iff variable is NaN
-      // IMPORTANT: this will not work, if compiler-option -ffast-math is enabled
-      if(x != x || y != y || z != z) checkNaN = true;
       worldCorners.push_back(cv::Point3f(x,y,z));
     }
-    if(checkNaN) {
-      PRINT(red, "[BREC] NaNs detected. Skip sample.");
-      continue;
-    }
 
-    std::vector<Eigen::Vector3f> boardCorners;
-    boardCorners.push_back(board->p(3,1,0));
-    boardCorners.push_back(board->p(2,1,0));
-    boardCorners.push_back(board->p(1,1,0));
-    boardCorners.push_back(board->p(3,2,0));
-    boardCorners.push_back(board->p(2,2,0));
-    boardCorners.push_back(board->p(1,2,0));
-    boardCorners.push_back(board->p(3,3,0));
-    boardCorners.push_back(board->p(2,3,0));
-    boardCorners.push_back(board->p(1,3,0));
-    boardCorners.push_back(board->p(3,1,2));
-    boardCorners.push_back(board->p(1,1,2));
-    boardCorners.push_back(board->p(3,3,2));
-    boardCorners.push_back(board->p(1,3,2));
 
+    // create matrix from world coords
     Eigen::MatrixXf worldData(worldCornersEig.size(),4);
     for(int i=0; i< worldCornersEig.size(); ++i) {
       worldData.row(i) << worldCornersEig[i][0], worldCornersEig[i][1], worldCornersEig[i][2], 1;
     }
-    PRINT(red, worldData);
 
+    // create matrix from board coords
     Eigen::MatrixXf boardData(boardCorners.size(),3);
     for(int i=0; i< boardCorners.size(); ++i) {
       boardData.row(i) << boardCorners[i][0], boardCorners[i][1], boardCorners[i][2];
     }
-    PRINT(cyan, boardData);
 
+    // find transformation matrix T:
+    //
+    // T * world = board
+    // worldTranspose * TTranspose = boardTranspose 
+    //
+    // world and board are already in transposed format
+    // solve for TTranspose and transpose again to get T
     Eigen::MatrixXf leastSquaresSolution;
     leastSquaresSolution = worldData.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(boardData);
     Eigen::Matrix4f transformMatrix;
     transformMatrix.topRows(3) = leastSquaresSolution.transpose();
     transformMatrix.row(3) << 0,0,0,1;
-    PRINT(yellow, transformMatrix);
+
+    // we mostly need the other direction: from board to world
     Eigen::Transform<float,3,Eigen::Affine> newTrans(transformMatrix);
-    newTrans = newTrans.inverse();
+    transform = newTrans.inverse();
+    // implicit cast
 
 
 
-    // Corresponding points of the chessboard corners in their own coordinate space
-    std::vector<cv::Point3f> objectPoints = board->corners;
 
+    // OpenCV transformation data:
     // camera intrinsics
     cv::Matx33d cameraMatrix = cam->getCameraMatrix();
-
     // camera distortion coefficients
     std::vector<double> distCoeffs = cam->getDistortionCoefficients();
-
-    // solve PnP problem -> get rotation- and translation-vector
-    /*cv::Mat rvec;
-    cv::Mat tvec;
-    bool solveSuccess;
-    solveSuccess = solvePnP(objectPoints, corners, cameraMatrix, distCoeffs, rvec, tvec);
-    if(!solveSuccess) {
-      PRINT(red, "[BREC] Problems solving the PnP-Problen!");
-      continue;
-    }*/
-
-    cv::Mat tvec = (cv::Mat_<float>(1,3) << newTrans.matrix()(0,3),
-        newTrans.matrix()(1,3), newTrans.matrix()(2,3)); 
-
-    Eigen::Matrix3f rotmateig = newTrans.matrix().topLeftCorner(3,3).matrix();
+    // extract tranlation- and rotation-vectors from transformation
+    cv::Mat tvec = (cv::Mat_<float>(1,3) << transform.matrix()(0,3), transform.matrix()(1,3), transform.matrix()(2,3)); 
+    Eigen::Matrix3f rotmateig = transform.matrix().topLeftCorner(3,3).matrix();
     Eigen::AngleAxisf aaf(rotmateig);
     Eigen::Vector3f aavec = aaf.angle() * aaf.axis();
-
     cv::Mat rvec = (cv::Mat_<float>(1,3) << aavec[0], aavec[1], aavec[2]);
 
 
-    // TODO tmp display
+    // project the world coordinates onto the image screen, to check for
+    // differences in image and pointcloud
     cv::Mat img_worldCorners = cimg->image.clone();
     std::vector<cv::Point2f> corners_proj;
-    cv::Mat tmprvec(1,3,CV_64FC1,cv::Scalar(0));
-    cv::Mat tmptvec(1,3,CV_64FC1,cv::Scalar(0));
-    cv::projectPoints(worldCorners, tmprvec, tmptvec, cameraMatrix, distCoeffs,
+    cv::Mat null_rvec(1,3,CV_64FC1,cv::Scalar(0));
+    cv::Mat null_tvec(1,3,CV_64FC1,cv::Scalar(0));
+    cv::projectPoints(worldCorners, null_rvec, null_tvec, cameraMatrix, distCoeffs,
         corners_proj);
     std::vector<cv::Point> corners_roi;
     {
       // convertion to integer points (pixel-coordinates)
-      typedef std::vector<cv::Point2f>::iterator type;
-      for(type it = corners_proj.begin(); it != corners_proj.end(); ++it) {
+      typedef std::vector<cv::Point2f>::iterator type1;
+      for(type1 it = corners_proj.begin(); it != corners_proj.end(); ++it) {
         corners_roi.push_back(cvPointFrom32f(*it));
       }
-    }
-    {
-      typedef std::vector<cv::Point>::iterator type;
-      for(type it = corners_roi.begin(); it != corners_roi.end(); ++it) {
+      typedef std::vector<cv::Point>::iterator type2;
+      for(type2 it = corners_roi.begin(); it != corners_roi.end(); ++it) {
         cv::circle(img_worldCorners, *it, 3.0, cv::Scalar(255, 0, 0), 1, 8);
       }
     }
     cv::imshow("Corners from world coordinates", img_worldCorners);
     cv::waitKey(1);
 
-
-
     PRINT(green, "[BREC] Transformation calculated.");
     PRINT("[BREC] Processing rotational ambiguities.");
-
-
 
     std::vector<float> markerKPIs;
     // try four different rotations...
@@ -334,19 +324,7 @@ void ChessBoardRec2::start() {
     board->angle = angle;
     std::vector<cv::Point3f> marker = board->getRotatedRegion("marker");
     
-    // create Eigen::Transform object for transforming in 3D space
-    // opencv sadly cannot do pure affine 3D transforms without projecting to the image plane
-    cv::Mat cvRot;
-    cv::Rodrigues(rvec, cvRot);
-    Eigen::Matrix<float,3,3> rotMat;
-    cv2eigen(cvRot, rotMat);
-    Eigen::Matrix<float,3,1> transMat;
-    cv2eigen(tvec, transMat);
-    Eigen::Translation<float,3> translation(transMat);
-    Eigen::AngleAxis<float> rotation(rotMat);
-    transform = translation * rotation;
 
-    PRINT(magenta, transform.inverse().matrix());
 
     // for the stability analysis, take the first point of the marker region
     Eigen::Vector3f point_board(marker[0].x, marker[0].y, marker[0].z);

@@ -22,7 +22,6 @@ class ChessStateRec3 : public StateRecognition {
     boost::shared_ptr<ChessBoard1>board;
     boost::shared_ptr<Camera> cam;
 
-    pcl::visualization::PCLVisualizer viewer;
 
     bool pointInPolygon(Eigen::Vector3f pt, std::vector<cv::Point3f> poly);
     int ptTest(float xa, float ya, float xb, float yb, float xc, float yc);

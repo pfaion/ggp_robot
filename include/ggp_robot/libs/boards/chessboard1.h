@@ -20,6 +20,8 @@ class ChessBoard1 : public PlanarBoard {
     std::vector<cv::Point3f> boundingBox;
     std::vector<cv::Point3f> getRotatedBoundingBox();
 
+    std::vector<cv::Point3f> markerRegion;
+
     cv::Point3f center;
 
     ChessBoard1();
@@ -41,6 +43,7 @@ class ChessBoard1 : public PlanarBoard {
     Eigen::Transform<float,3,Eigen::Affine> transform;
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
+    std::vector<cv::Point3f> rotateTransformPoints(std::vector<cv::Point3f> v);
     RegionLayout getRotatedTransformedLayout();
     std::vector<cv::Point3f> getRotatedTransformedRegion(std::string name);
 

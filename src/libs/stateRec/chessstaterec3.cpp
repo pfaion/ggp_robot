@@ -38,7 +38,6 @@
 
 
 ChessStateRec3::ChessStateRec3()
-  : viewer("test")
 {
   PRINT("[SREC] Recognizer initializing...");
 
@@ -79,10 +78,20 @@ bool ChessStateRec3::start(ggp_robot::GetState::Request &req, ggp_robot::GetStat
   cam->listenToImageStream(false);
 
   // check for stability
-  int window_size = 20;
+  // init buffer;
+  int window_size = 6;
   boost::circular_buffer<Eigen::Vector3f> normalVector_buffer(window_size);
-  boost::circular_buffer<std::map<std::string, int> > states_buffer(window_size);
-  boost::circular_buffer<std::map<std::string, Eigen::Vector3f> > grabPoints_buffer(window_size);
+  std::map<std::string, boost::circular_buffer<int> > states_buffers;
+  std::map<std::string, boost::circular_buffer<Eigen::Vector3f> > grabPoints_buffers;
+  std::map<std::string, std::vector<cv::Point3f> > board_layout = board->getRotatedLayout();
+  for(std::map<std::string, std::vector<cv::Point3f> >::iterator it = board_layout.begin();
+      it != board_layout.end();
+      ++it){
+    states_buffers[it->first] = boost::circular_buffer<int>(window_size);
+    grabPoints_buffers[it->first] = boost::circular_buffer<Eigen::Vector3f>(window_size);
+  }
+
+
 
   bool stable = false;
   while(ros::ok() && !stable) {
@@ -91,7 +100,6 @@ bool ChessStateRec3::start(ggp_robot::GetState::Request &req, ggp_robot::GetStat
 
     // init cluster-field-assignment with empty lists
     std::map<std::string, std::vector<Cluster> > field_cluster_map;
-    std::map<std::string, std::vector<cv::Point3f> > board_layout = board->getRotatedLayout();
     for(std::map<std::string, std::vector<cv::Point3f> >::iterator it = board_layout.begin();
         it != board_layout.end();
         ++it){
@@ -211,6 +219,8 @@ bool ChessStateRec3::start(ggp_robot::GetState::Request &req, ggp_robot::GetStat
     // normal vector
     Eigen::Vector3f normalVector(plane_nx, plane_ny, plane_nz);
 
+    // push results in buffer
+    normalVector_buffer.push_back(normalVector);
 
 
 
@@ -382,6 +392,11 @@ bool ChessStateRec3::start(ggp_robot::GetState::Request &req, ggp_robot::GetStat
         pcl::visualization::PointCloudColorHandlerCustom<PointType> tmpcol(cloud_cluster, r,g,b);
         viewer.addPointCloud<PointType>(cloud_cluster, tmpcol, "tmp"+cl_idstr);
       }
+    
+      // push results in buffer
+      states_buffers[name].push_back(states[name]);
+      grabPoints_buffers[name].push_back(grabPoints[name]);
+
     }
 
 
@@ -407,22 +422,18 @@ bool ChessStateRec3::start(ggp_robot::GetState::Request &req, ggp_robot::GetStat
     viewer.addPointCloud<PointType>(grid, gridcol, "grid");
     viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 2, "grid");
 
-    // push results in buffer
-    states_buffer.push_back(states);
-    normalVector_buffer.push_back(normalVector);
-    grabPoints_buffer.push_back(grabPoints);
 
     // if buffer full -> stable?
-    if(states_buffer.full()) {
+    if(normalVector_buffer.full()) {
       PRINT("[SREC] Buffer full."); 
       stable = true;
-      typedef boost::circular_buffer<std::map<std::string, int> >::iterator buftype;
-      typedef std::map<std::string, std::vector<cv::Point3f> >::iterator regtype;
-      for(regtype it_reg = board->regions.begin(); it_reg != board->regions.end(); ++it_reg) {
-        std::string name = it_reg->first;
-        int checkstate = states_buffer[0][name];
-        for(buftype it_buf = states_buffer.begin(); it_buf != states_buffer.end(); ++it_buf) {
-          if(checkstate != (*it_buf)[name]) stable = false;
+      typedef std::map<std::string, boost::circular_buffer<int> >::iterator regtype;
+      typedef boost::circular_buffer<int>::iterator buftype;
+      for(regtype it_reg = states_buffers.begin(); it_reg != states_buffers.end(); ++it_reg) {
+        boost::circular_buffer<int> buffer = it_reg->second;
+        int checkstate = buffer[0];
+        for(buftype it_buf = buffer.begin(); it_buf != buffer.end(); ++it_buf) {
+          if(checkstate != (*it_buf)) stable = false;
         }
       }
       if(stable) {
@@ -459,18 +470,33 @@ bool ChessStateRec3::start(ggp_robot::GetState::Request &req, ggp_robot::GetStat
   res.normalVector.z = normalVectorFinal(2);
 
   // get states and field-names
-  std::map<std::string, int> states = states_buffer[0];
-  for(std::map<std::string, int>::iterator it = states.begin(); it != states.end(); ++it) {
+  for(std::map<std::string, boost::circular_buffer<int> >::iterator it = states_buffers.begin(); it != states_buffers.end(); ++it) {
     res.names.push_back(it->first);
-    res.states.push_back(it->second);
+    res.states.push_back(it->second[0]);
   }
 
   // average over grab points
+  for(std::map<std::string, boost::circular_buffer<Eigen::Vector3f> >::iterator it = grabPoints_buffers.begin(); it != grabPoints_buffers.end(); ++it) {
+    boost::circular_buffer<Eigen::Vector3f> grabPoints = it->second;
+    Eigen::Vector3f avg;
+    for(boost::circular_buffer<Eigen::Vector3f>::iterator it2 = grabPoints.begin(); it2 != grabPoints.end(); ++it2) {
+      avg += (*it2);
+    }
+    avg *= 1.0/grabPoints.size();
+    geometry_msgs::Point32 p;
+    p.x = avg(0);
+    p.y = avg(1);
+    p.z = avg(2);
+    res.grabPoints.push_back(p);
+  }
 
 
 
 }
 
+
+// got these functions from the internet, they check if a 2D-point lies in a polygon
+// adjusted them to usual 3D-format, but they project everything onto the x-y-plane (z=0)
 bool ChessStateRec3::pointInPolygon(Eigen::Vector3f pt, std::vector<cv::Point3f> poly) {
   int t = -1;
   typedef std::vector<cv::Point3f>::iterator type;

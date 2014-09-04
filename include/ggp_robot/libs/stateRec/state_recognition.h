@@ -2,6 +2,7 @@
 #define __GGP_ROBOT_STATE_RECOGNITION_H
 
 #include <boost/shared_ptr.hpp>
+#include <pcl/visualization/cloud_viewer.h>
 #include <ggp_robot/libs/boards/board.h>
 #include <ggp_robot/libs/cameras/camera.h>
 #include <ggp_robot/GetState.h>
@@ -15,6 +16,8 @@ class StateRecognition {
     virtual void setCamera(boost::shared_ptr<Camera>& cam) = 0;
 
     virtual bool start(ggp_robot::GetState::Request &req, ggp_robot::GetState::Response &res) = 0;
+
+    pcl::visualization::PCLVisualizer viewer;
 
 };
 

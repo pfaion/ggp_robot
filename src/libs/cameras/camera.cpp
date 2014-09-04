@@ -78,7 +78,6 @@ void Camera::listenToCloudStream(bool state) {
       cloudMtx.unlock();
     }
     PRINT(green, "[CAM] Found cloud stream!");
-    PRINT(green, bool(storedCloud));
   } else {
     cloudSub.shutdown();
     cloudActive = false;
