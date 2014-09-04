@@ -97,7 +97,6 @@ bool ChessStateRec3::start(ggp_robot::GetState::Request &req, ggp_robot::GetStat
   while(ros::ok() && !stable) {
 
 
-
     // init cluster-field-assignment with empty lists
     std::map<std::string, std::vector<Cluster> > field_cluster_map;
     for(std::map<std::string, std::vector<cv::Point3f> >::iterator it = board_layout.begin();

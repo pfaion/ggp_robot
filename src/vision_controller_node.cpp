@@ -114,8 +114,13 @@ void VisionController::spin() {
   keyboard.start();
 
   while(ros::ok()) {
-    srec->viewer.spinOnce();
-    cv::waitKey(1);
+
+    // continue visualization... can segfault with multithreading!!!!(wtf!?)
+    if(mtx.try_lock()) {
+      srec->viewer.spinOnce();
+      cv::waitKey(1);
+      mtx.unlock();
+    }
 
     char c = keyboard.getChar();
     if(c == 'q') {

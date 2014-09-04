@@ -288,7 +288,7 @@ void ChessBoardRec2::start() {
       angle = M_PI/2.0 * i;
 
       // get rotated marker ROI
-      std::vector<cv::Point3f> marker = board->getRotatedRegion("marker", angle);
+      std::vector<cv::Point3f> marker = board->rotatePoints(board->markerRegion, angle);
 
       // project marker onto image-plane for pixel extraction
       std::vector<cv::Point2f> marker_proj;
@@ -322,7 +322,7 @@ void ChessBoardRec2::start() {
 
     angle = M_PI/2.0 * maxIdx;
     board->angle = angle;
-    std::vector<cv::Point3f> marker = board->getRotatedRegion("marker");
+    std::vector<cv::Point3f> marker = board->rotatePoints(board->markerRegion);
     
 
 

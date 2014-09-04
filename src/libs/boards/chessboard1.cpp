@@ -35,11 +35,11 @@ ChessBoard1::ChessBoard1()
   }
 
   // initialize marker region description
-  this->regions["marker"] = std::vector<cv::Point3f>();
-  this->regions["marker"].push_back(p(4,0));
-  this->regions["marker"].push_back(p(5,0));
-  this->regions["marker"].push_back(p(5,1));
-  this->regions["marker"].push_back(p(4,1));
+  //this->regions["marker"] = std::vector<cv::Point3f>();
+  //this->regions["marker"].push_back(p(4,0));
+  //this->regions["marker"].push_back(p(5,0));
+  //this->regions["marker"].push_back(p(5,1));
+  //this->regions["marker"].push_back(p(4,1));
 
   markerRegion = std::vector<cv::Point3f>();
   markerRegion.push_back(p(4,0));
