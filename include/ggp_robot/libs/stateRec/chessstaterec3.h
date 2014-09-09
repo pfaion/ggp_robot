@@ -40,7 +40,7 @@ class ChessStateRec3 : public StateRecognition {
       pcl::PointIndices indices;
       PlaneTools plane;
       pcl::PointCloud<PointType>::Ptr refcloud;
-      void analyse();
+      void analyse(float radius);
     };
 
 };

@@ -253,7 +253,8 @@ bool ChessStateRec3::start(ggp_robot::GetState::Request &req, ggp_robot::GetStat
     // process clusters
     // ========================================================================
 
-    float height = 0.11;
+    float height = float(board->piece_height);
+    float radius = float(board->piece_radius);
 
     // loop over all clusters
     for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin (); it != cluster_indices.end(); ++it) {
@@ -264,7 +265,7 @@ bool ChessStateRec3::start(ggp_robot::GetState::Request &req, ggp_robot::GetStat
       c.indices = (*it);
       c.refcloud = filtered;
       c.plane = plane;
-      c.analyse();
+      c.analyse(radius);
 
       // omit cluster, if not high enough
       // 1/4 as factor ensures that all clusters with a hight of more than half a
@@ -340,7 +341,7 @@ bool ChessStateRec3::start(ggp_robot::GetState::Request &req, ggp_robot::GetStat
         c.indices = ptIndices;
         c.plane = plane;
         c.refcloud = filtered;
-        c.analyse();
+        c.analyse(radius);
 
         // state=1 means piece found
         states[name] = 1;
@@ -535,7 +536,7 @@ int ChessStateRec3::ptTest(float xa, float ya, float xb, float yb, float xc, flo
 }
 
 
-void ChessStateRec3::Cluster::analyse() {
+void ChessStateRec3::Cluster::analyse(float radius) {
 
   std::vector<int> ind = indices.indices;
 
@@ -564,8 +565,6 @@ void ChessStateRec3::Cluster::analyse() {
   // knowledge of the real radius of the pieces, it is possible to project
   // the base point away from the camera, such that it resembles the real
   // base more accurately.
-
-  float radius = 0.0175;
 
   // project the view direction on the plane
   // view direction = base - nullvector ( = base)

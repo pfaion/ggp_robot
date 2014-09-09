@@ -1,0 +1,10 @@
+<launch>
+  <node name="vision_controller" pkg="ggp_robot" type="vision_controller_node" output="screen">
+    <param name="_boardclass" type="str" value="chessboard1" />
+    <param name="_cameraclass" type="str" value="xtion" />
+    <param name="_boardrecognitionclass" type="str" value="chessboardrec2" />
+    <param name="_staterecognitionclass" type="str" value="chessstaterec3" />
+    <param name="_piece_radius" type="double" value="0.025" />
+    <param name="_piece_height" type="double" value="0.13" />
+  </node>
+</launch>

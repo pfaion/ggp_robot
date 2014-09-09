@@ -50,6 +50,10 @@ class ChessBoard1 : public PlanarBoard {
     float markerPerformanceIndicator(cv::Mat roi, cv::Mat mask);
 
 
+    double piece_radius;
+    double piece_height;
+
+
 
     void print(std::map<std::string,int> s);
       

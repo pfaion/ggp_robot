@@ -13,6 +13,12 @@
 ChessBoard1::ChessBoard1()
   : FIELD_SIZE(0.0945)
 {
+  // initialize node parameters from launch file or command line
+  ros::NodeHandle private_nh_("~");
+  private_nh_.param("piece_radius", piece_radius, 0.0175);
+  PRINT("[BOARD] Set piece radius to " << piece_radius);
+  private_nh_.param("piece_height", piece_height, 0.11);
+  PRINT("[BOARD] Set piece height to " << piece_height);
 
   // initialize region descriptions for regular fields
   std::vector<std::string> desc;
@@ -33,13 +39,6 @@ ChessBoard1::ChessBoard1()
       this->regions[d].push_back(p(x,y+1));
     }
   }
-
-  // initialize marker region description
-  //this->regions["marker"] = std::vector<cv::Point3f>();
-  //this->regions["marker"].push_back(p(4,0));
-  //this->regions["marker"].push_back(p(5,0));
-  //this->regions["marker"].push_back(p(5,1));
-  //this->regions["marker"].push_back(p(4,1));
 
   markerRegion = std::vector<cv::Point3f>();
   markerRegion.push_back(p(4,0));
