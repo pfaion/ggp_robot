@@ -60,14 +60,14 @@ ChessBoard1::ChessBoard1()
 
   // boundingBox
   this->boundingBox = std::vector<cv::Point3f>();
-  this->boundingBox.push_back(p(0,0,-0.5));
-  this->boundingBox.push_back(p(5,0,-0.5));
-  this->boundingBox.push_back(p(5,4,-0.5));
-  this->boundingBox.push_back(p(0,4,-0.5));
-  this->boundingBox.push_back(p(0,0,3));
-  this->boundingBox.push_back(p(5,0,3));
-  this->boundingBox.push_back(p(5,4,3));
-  this->boundingBox.push_back(p(0,4,3));
+  this->boundingBox.push_back(p(-0.1,-0.1,-0.1));
+  this->boundingBox.push_back(p(5.1,-0.1,-0.1));
+  this->boundingBox.push_back(p(5.1,4.1,-0.1));
+  this->boundingBox.push_back(p(-0.1,4.1,-0.1));
+  this->boundingBox.push_back(p(-0.1,-0.1,3));
+  this->boundingBox.push_back(p(5.1,-0.1,3));
+  this->boundingBox.push_back(p(5.1,4.1,3));
+  this->boundingBox.push_back(p(-0.1,4.1,3));
 
   // initialize rotation center
   this->center = p(2,2);

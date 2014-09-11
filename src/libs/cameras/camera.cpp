@@ -85,7 +85,7 @@ void Camera::listenToCloudStream(bool state) {
 }
 
 void Camera::imageCb(const sensor_msgs::ImageConstPtr& msg) {
-  PRINT("[CAM] Image received.");
+  //PRINT("[CAM] Image received.");
   imgMtx.lock();
   storedImage = msg;
   imgLastStamp = msecStamp();
@@ -109,7 +109,7 @@ cv_bridge::CvImageConstPtr Camera::getCvImage(bool waitForNew){
 } 
 
 void Camera::cloudCb(const sensor_msgs::PointCloud2::Ptr cloud) {
-  PRINT("[CAM] Cloud received.");
+  //PRINT("[CAM] Cloud received.");
   cloudMtx.lock();
   storedCloud = cloud;
   cloudLastStamp = msecStamp();
